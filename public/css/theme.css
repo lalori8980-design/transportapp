@@ -1,0 +1,124 @@
+/* public/css/theme.css */
+
+/* ===== Theme tokens (global) ===== */
+:root{
+    --wine: #6a0f1f;
+    --wine-2:#8b1530;
+
+    --bg: #f5f6f8;
+    --card:#ffffff;
+    --text:#0f172a;
+    --muted:#64748b;
+
+    --border: rgba(15, 23, 42, .10);
+    --shadow: 0 12px 30px rgba(2,6,23,.08);
+
+    --chip-bg: rgba(106,15,31,.10);
+    --chip-text: #5a0d1a;
+
+    --nav: #0b0b0f;
+
+    --radius: 18px;
+}
+
+/* Dark theme overrides */
+html[data-theme="dark"]{
+    --bg:#0b0b0f;
+    --card:#111218;
+    --text:#f1f5f9;
+    --muted:#a3adc2;
+
+    --border: rgba(255,255,255,.10);
+    --shadow: 0 16px 36px rgba(0,0,0,.35);
+
+    --chip-bg: rgba(139,21,48,.22);
+    --chip-text: #ffd6de;
+
+    --nav:#000;
+}
+
+/* ===== Base ===== */
+body{
+    background: var(--bg) !important;
+    color: var(--text);
+}
+
+.subtle{ color: var(--muted); }
+
+/* ===== Navbar ===== */
+.app-navbar{
+    background: linear-gradient(90deg, var(--nav), #151521) !important;
+    border-bottom: 1px solid var(--border);
+}
+
+.brand-dot{
+    width:10px; height:10px; border-radius:999px;
+    background: var(--wine);
+    display:inline-block;
+    box-shadow: 0 0 0 4px rgba(106,15,31,.18);
+}
+
+/* ===== Cards ===== */
+.card-soft{
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
+}
+
+/* ===== Hero ===== */
+.hero{
+    background:
+            radial-gradient(1200px 600px at 10% 0%, rgba(106,15,31,.20), transparent 55%),
+            radial-gradient(900px 500px at 90% 10%, rgba(106,15,31,.10), transparent 60%);
+    border-radius: calc(var(--radius) + 4px);
+    padding: 22px;
+    border: 1px solid var(--border);
+}
+
+/* ===== Buttons ===== */
+.btn-wine{
+    background: var(--wine);
+    border-color: var(--wine);
+    color:#fff;
+}
+.btn-wine:hover{
+    background: var(--wine-2);
+    border-color: var(--wine-2);
+    color:#fff;
+}
+
+/* ===== Chips ===== */
+.chip{
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    padding:.45rem .7rem;
+    border-radius:999px;
+    background: var(--chip-bg);
+    color: var(--chip-text);
+    border: 1px solid var(--border);
+    font-weight:600;
+    font-size:.9rem;
+    margin:.3rem .35rem 0 0;
+    white-space:nowrap;
+}
+
+/* ===== Theme toggle button ===== */
+.theme-btn{
+    border:1px solid var(--border);
+    background: transparent;
+    color:#fff;
+    padding:.35rem .6rem;
+    border-radius: 12px;
+}
+
+/* Sticky CTA helper (optional) */
+.footer-cta{
+    position: sticky;
+    bottom: 14px;
+    z-index: 5;
+}
+@media (min-width: 992px){
+    .footer-cta{ position: static; }
+}

@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/theme.css" rel="stylesheet">
+    <title>Reservar</title>
+
+    <style>
+        /* =========================
+           Reserva - mejoras UI
+           ========================= */
+
+        .form-label{ font-weight: 600; }
+        .help{ color: var(--muted); font-size: .9rem; }
+
+        /* Stepper + / - */
+        .stepper{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            border:1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 86%, transparent);
+            border-radius: 16px;
+            padding: 10px;
+        }
+        .stepper .btn-step{
+            width:44px;
+            height:40px;
+            border-radius: 14px;
+            border:1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-weight: 700;
+        }
+        .stepper .btn-step:hover{
+            border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
+            background: color-mix(in srgb, var(--card) 70%, transparent);
+        }
+        .stepper .count{
+            min-width: 60px;
+            text-align:center;
+            font-weight: 650;
+            letter-spacing: -.01em;
+            color: var(--text);
+        }
+
+        /* Horarios como pills + secciones */
+        .slots-wrap{
+            border:1px solid var(--border);
+            border-radius: 18px;
+            padding: 14px;
+            background: color-mix(in srgb, var(--card) 90%, transparent);
+        }
+        .slots-head{
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-end;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-bottom: 10px;
+        }
+        .slots-title{
+            font-weight: 650;
+            letter-spacing: -.01em;
+            margin: 0;
+        }
+        .slots-sub{ color: var(--muted); font-size: .9rem; }
+
+        .slot-section{
+            margin-top: 12px;
+        }
+        .slot-section:first-child{ margin-top: 0; }
+
+        .section-label{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            color: var(--muted);
+            font-weight: 650;
+            font-size: .9rem;
+            margin-bottom: 8px;
+        }
+
+        .slots{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+        }
+
+        .slot-pill{
+            border:1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 92%, transparent);
+            border-radius: 999px;
+            padding: 10px 12px;
+            cursor:pointer;
+            transition: transform .06s ease, border-color .12s ease, background .12s ease;
+            color: var(--text);
+            user-select:none;
+
+            display:inline-flex;
+            align-items:center;
+            gap:10px;
+            line-height:1;
+        }
+        .slot-pill:hover{
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
+            background: color-mix(in srgb, var(--card) 78%, transparent);
+        }
+        .slot-pill[aria-selected="true"]{
+            border-color: color-mix(in srgb, var(--wine) 75%, var(--border));
+            background: color-mix(in srgb, var(--chip-bg) 70%, var(--card));
+            box-shadow: 0 10px 26px rgba(2,6,23,.10);
+        }
+
+        .slot-pill .time{
+            font-weight: 650;
+            white-space:nowrap;
+        }
+        .slot-pill .mini{
+            display:inline-flex;
+            align-items:center;
+            gap:.35rem;
+            padding:.18rem .5rem;
+            border-radius:999px;
+            border:1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 86%, transparent);
+            color: var(--muted);
+            font-size: .82rem;
+            white-space:nowrap;
+        }
+
+        .slot-pill.is-warning .mini{
+            background: rgba(241,220,33,.14);
+            color: color-mix(in srgb, #f1dc21 60%, var(--text));
+        }
+        .slot-pill.is-danger{
+            opacity:.55;
+            pointer-events:none;
+        }
+
+        /* separaciones internas */
+        .card-soft .row.g-3 > [class*="col-"]{
+            padding-top: 2px;
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar navbar-dark app-navbar">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+            <span class="brand-dot"></span>
+            <span class="fw-bold">TransportApp</span>
+        </a>
+
+        <button id="themeToggle" class="theme-btn" type="button" aria-label="Cambiar tema">
+            <span id="themeIcon">🌙</span> <span class="d-none d-sm-inline">Tema</span>
+        </button>
+    </div>
+</nav>
+
+<main class="container py-4">
+
+    <div class="hero mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <h1 class="h3 headline mb-1">Reservar</h1>
+                <div class="subtle">Elige ruta, fecha y cantidad. Te mostramos solo horarios con cupo.</div>
+            </div>
+            <a class="btn btn-wine" href="/">Volver</a>
+        </div>
+    </div>
+
+    <div class="card-soft p-4">
+        <% if (error) { %>
+            <div class="alert alert-danger mb-3"><%= error %></div>
+        <% } %>
+
+        <form id="reserveForm" method="POST" action="/reserve" class="row g-3">
+
+            <!-- 1) Origen -->
+            <div class="col-md-6">
+                <label class="form-label">¿De dónde sales?</label>
+                <select id="from_city" class="form-select" required>
+                    <option value="VIC" selected>Ciudad Victoria</option>
+                    <option value="LLE">Llera</option>
+                </select>
+            </div>
+
+            <!-- 2) Destino -->
+            <div class="col-md-6">
+                <label class="form-label">¿Hacia dónde vas?</label>
+                <select id="to_city" class="form-select" required>
+                    <option value="LLE" selected>Llera</option>
+                    <option value="VIC">Ciudad Victoria</option>
+                </select>
+            </div>
+
+            <!-- direction REAL que se manda al backend -->
+            <input type="hidden" id="direction" name="direction" value="VIC_TO_LLE">
+
+            <!-- 3) Fecha (default: hoy) -->
+            <div class="col-md-4">
+                <label class="form-label">¿Cuándo viajas?</label>
+                <input id="trip_date" name="trip_date" type="date" class="form-control" required />
+                <div class="form-text subtle">Por defecto se coloca el día de hoy.</div>
+            </div>
+
+            <!-- 4) Tipo -->
+            <div class="col-md-4">
+                <label class="form-label">¿Qué quieres reservar?</label>
+                <select id="type" name="type" class="form-select" required>
+                    <option value="PASSENGER" selected>Pasajero</option>
+                    <option value="PACKAGE">Paquetería / Mandado</option>
+                </select>
+            </div>
+
+            <!-- 4) Cuántos viajan (stepper + hidden select para backend) -->
+            <div class="col-md-4" id="seatsWrap">
+                <label class="form-label">¿Cuántos viajan?</label>
+
+                <div class="stepper">
+                    <button id="minusBtn" type="button" class="btn-step" aria-label="Disminuir">−</button>
+                    <div class="count"><span id="seatsText">1</span></div>
+                    <button id="plusBtn" type="button" class="btn-step" aria-label="Aumentar">+</button>
+
+                    <!-- Backend espera "seats" -->
+                    <select id="seats" name="seats" class="d-none">
+                        <option value="1" selected>1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                    </select>
+                </div>
+
+                <div class="form-text subtle">Máximo 7 pasajeros por salida.</div>
+            </div>
+
+            <!-- 5) Nombres (solo pasajeros) -->
+            <div class="col-12" id="passengerNamesWrap">
+                <label class="form-label">Nombres de los pasajeros</label>
+                <div id="passengerNames" class="row g-2"></div>
+                <div class="form-text">
+                    El primer nombre se tomará como <span class="subtle">contacto</span>.
+                </div>
+            </div>
+
+            <!-- PAQUETERÍA: Nombre de contacto (solo si es PACKAGE) -->
+            <div class="col-md-6" id="packageContactWrap">
+                <label class="form-label">Nombre de contacto</label>
+                <input id="package_contact_name" name="customer_name" class="form-control" placeholder="Ej: Juan Pérez" />
+                <div class="form-text subtle">Solo aplica para paquetería.</div>
+            </div>
+
+            <!-- Teléfono (siempre) -->
+            <div class="col-md-6">
+                <label class="form-label">Teléfono</label>
+                <input id="phone" name="phone" class="form-control" required placeholder="Ej: 8341234567" />
+            </div>
+
+            <!-- PAQUETERÍA: detalle (solo si es PACKAGE) -->
+            <div class="col-12" id="packageWrap">
+                <label class="form-label">Detalle paquetería (opcional)</label>
+                <input id="package_details" name="package_details" class="form-control" placeholder="Ej: sobre, refacciones, etc." />
+            </div>
+
+            <!-- Horarios pill (divididos: mañana/tarde) -->
+            <div class="col-12">
+                <label class="form-label">Hora (según cupo)</label>
+
+                <!-- backend sigue esperando depart_time -->
+                <input type="hidden" id="depart_time" name="depart_time" value="">
+
+                <div class="slots-wrap">
+                    <div class="slots-head">
+                        <p class="slots-title mb-0">Horarios disponibles</p>
+                        <div class="slots-sub" id="slotsHint">Selecciona fecha y ruta.</div>
+                    </div>
+
+                    <div id="slotsLoading" class="help">—</div>
+
+                    <div id="sections" class="d-none">
+                        <div class="slot-section" id="morningSection">
+                            <div class="section-label">🌤️ Mañana</div>
+                            <div id="morningSlots" class="slots"></div>
+                        </div>
+
+                        <div class="slot-section" id="afternoonSection">
+                            <div class="section-label">🌇 Tarde</div>
+                            <div id="afternoonSlots" class="slots"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-text subtle mt-2">Te mostramos horarios con cupo para tu selección.</div>
+            </div>
+
+            <div class="col-12 d-flex gap-2 flex-wrap mt-2">
+                <button class="btn btn-wine px-4">Confirmar reserva</button>
+                <a class="btn btn-outline-secondary px-4" href="/">Cancelar</a>
+            </div>
+
+        </form>
+    </div>
+
+</main>
+
+<script>
+    const tripDate = document.getElementById("trip_date");
+
+    const fromCity = document.getElementById("from_city");
+    const toCity = document.getElementById("to_city");
+    const directionInput = document.getElementById("direction");
+
+    const typeSel = document.getElementById("type");
+
+    const seatsWrap = document.getElementById("seatsWrap");
+    const seatsSel = document.getElementById("seats");
+    const seatsText = document.getElementById("seatsText");
+    const plusBtn = document.getElementById("plusBtn");
+    const minusBtn = document.getElementById("minusBtn");
+
+    const passengerNamesWrap = document.getElementById("passengerNamesWrap");
+    const passengerNames = document.getElementById("passengerNames");
+
+    const packageContactWrap = document.getElementById("packageContactWrap");
+    const packageContactName = document.getElementById("package_contact_name");
+
+    const packageWrap = document.getElementById("packageWrap");
+    const packageDetails = document.getElementById("package_details");
+
+    const departTimeHidden = document.getElementById("depart_time");
+
+    const slotsHint = document.getElementById("slotsHint");
+    const slotsLoading = document.getElementById("slotsLoading");
+    const sections = document.getElementById("sections");
+    const morningSection = document.getElementById("morningSection");
+    const afternoonSection = document.getElementById("afternoonSection");
+    const morningSlots = document.getElementById("morningSlots");
+    const afternoonSlots = document.getElementById("afternoonSlots");
+
+    function todayISO(){
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function toHHMM(t){
+        // remove seconds if present: "08:30:00" -> "08:30"
+        const s = String(t || "").trim();
+        const parts = s.split(":");
+        if (parts.length >= 2) return `${parts[0].padStart(2,"0")}:${parts[1].padStart(2,"0")}`;
+        return s;
+    }
+
+    function hourFromTime(t){
+        const hhmm = toHHMM(t);
+        const hh = Number((hhmm.split(":")[0] || "0"));
+        return isNaN(hh) ? 0 : hh;
+    }
+
+    function setSeats(n){
+        const value = Math.max(1, Math.min(7, Number(n || 1)));
+        seatsSel.value = String(value);
+        seatsText.textContent = String(value);
+
+        minusBtn.disabled = value <= 1;
+        plusBtn.disabled = value >= 7;
+    }
+
+    function syncDirection() {
+        const f = fromCity.value;
+        const t = toCity.value;
+
+        if (f === t) {
+            toCity.value = (f === "VIC") ? "LLE" : "VIC";
+        }
+
+        const from = fromCity.value;
+        const to = toCity.value;
+
+        directionInput.value = (from === "VIC" && to === "LLE") ? "VIC_TO_LLE" : "LLE_TO_VIC";
+    }
+
+    function updateUIByType() {
+        const isPassenger = typeSel.value === "PASSENGER";
+
+        seatsWrap.style.display = isPassenger ? "" : "none";
+        passengerNamesWrap.style.display = isPassenger ? "" : "none";
+
+        packageContactWrap.style.display = isPassenger ? "none" : "";
+        packageWrap.style.display = isPassenger ? "none" : "";
+
+        if (isPassenger) {
+            packageContactName.value = "";
+            packageDetails.value = "";
+            packageContactName.removeAttribute("required");
+        } else {
+            packageContactName.setAttribute("required", "required");
+            passengerNames.innerHTML = "";
+        }
+    }
+
+    function renderPassengerInputs() {
+        const isPassenger = typeSel.value === "PASSENGER";
+        const seats = Number(seatsSel.value || 1);
+
+        passengerNames.innerHTML = "";
+        if (!isPassenger) return;
+
+        for (let i = 1; i <= seats; i++) {
+            const col = document.createElement("div");
+            col.className = "col-md-4";
+            col.innerHTML = `
+        <input class="form-control" name="passenger_names[]" required
+               placeholder="Pasajero ${i} (Nombre completo)" />
+      `;
+            passengerNames.appendChild(col);
+        }
+    }
+
+    function clearSlotsUI(msg){
+        departTimeHidden.value = "";
+        slotsLoading.textContent = msg || "Selecciona fecha y ruta para ver horarios.";
+        sections.classList.add("d-none");
+        morningSlots.innerHTML = "";
+        afternoonSlots.innerHTML = "";
+        morningSection.classList.remove("d-none");
+        afternoonSection.classList.remove("d-none");
+    }
+
+    function setSelectedTime(hhmm){
+        const value = toHHMM(hhmm);
+        departTimeHidden.value = value;
+
+        document.querySelectorAll(".slot-pill").forEach(el => {
+            el.setAttribute("aria-selected", (el.dataset.time === value) ? "true" : "false");
+        });
+    }
+
+    function createPill({time, available, seatsNeeded}){
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-pill";
+        const hhmm = toHHMM(time);
+        btn.dataset.time = hhmm;
+        btn.setAttribute("aria-selected","false");
+
+        if (available <= 2) btn.classList.add("is-warning");
+        if (available <= 0) btn.classList.add("is-danger");
+
+        btn.innerHTML = `
+      <span class="time">🕒 ${hhmm}</span>
+      <span class="mini">👥 ${available} libres</span>
+      <span class="mini">para ${seatsNeeded}</span>
+    `;
+
+        btn.addEventListener("click", () => setSelectedTime(hhmm));
+        return btn;
+    }
+
+    function renderSlotsGrouped(results, seatsNeeded){
+        const items = (results || [])
+            .map(x => ({ time: toHHMM(x.time), available: Number(x.available || 0) }))
+            .filter(x => x.available >= seatsNeeded)
+            .sort((a,b) => a.time.localeCompare(b.time));
+
+        if (!items.length){
+            clearSlotsUI("No hay horarios con cupo suficiente para tu selección.");
+            return;
+        }
+
+        // split morning/afternoon
+        const morning = items.filter(x => hourFromTime(x.time) < 12);
+        const afternoon = items.filter(x => hourFromTime(x.time) >= 12);
+
+        morningSlots.innerHTML = "";
+        afternoonSlots.innerHTML = "";
+
+        if (!morning.length) morningSection.classList.add("d-none"); else morningSection.classList.remove("d-none");
+        if (!afternoon.length) afternoonSection.classList.add("d-none"); else afternoonSection.classList.remove("d-none");
+
+        morning.forEach(x => morningSlots.appendChild(createPill({ ...x, seatsNeeded })));
+        afternoon.forEach(x => afternoonSlots.appendChild(createPill({ ...x, seatsNeeded })));
+
+        sections.classList.remove("d-none");
+        slotsLoading.textContent = "Selecciona un horario:";
+        setSelectedTime((morning[0] || afternoon[0]).time);
+    }
+
+    async function loadAvailability() {
+        const date = tripDate.value;
+        const dir = directionInput.value;
+
+        if (!date || !dir){
+            clearSlotsUI("Selecciona fecha y ruta para ver horarios.");
+            return;
+        }
+
+        const seatsNeeded = (typeSel.value === "PASSENGER")
+            ? Number(seatsSel.value || 1)
+            : 0;
+
+        slotsLoading.textContent = "Cargando horarios...";
+        sections.classList.add("d-none");
+        departTimeHidden.value = "";
+
+        try {
+            const url = `/availability?date=${encodeURIComponent(date)}&direction=${encodeURIComponent(dir)}&seats=${encodeURIComponent(seatsNeeded)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            renderSlotsGrouped(data.results || [], seatsNeeded);
+        } catch (e) {
+            clearSlotsUI("Error al cargar horarios. Intenta de nuevo.");
+        }
+    }
+
+    // listeners
+    fromCity.addEventListener("change", () => { syncDirection(); loadAvailability(); });
+    toCity.addEventListener("change", () => { syncDirection(); loadAvailability(); });
+
+    tripDate.addEventListener("change", loadAvailability);
+
+    typeSel.addEventListener("change", () => {
+        updateUIByType();
+        renderPassengerInputs();
+        loadAvailability();
+    });
+
+    plusBtn.addEventListener("click", () => {
+        setSeats(Number(seatsSel.value || 1) + 1);
+        renderPassengerInputs();
+        loadAvailability();
+    });
+
+    minusBtn.addEventListener("click", () => {
+        setSeats(Number(seatsSel.value || 1) - 1);
+        renderPassengerInputs();
+        loadAvailability();
+    });
+
+    // init
+    syncDirection();
+    updateUIByType();
+
+    // default date = today (if empty)
+    if (!tripDate.value) tripDate.value = todayISO();
+
+    setSeats(1);
+    renderPassengerInputs();
+    loadAvailability();
+</script>
+
+<script src="/js/theme.js"></script>
+</body>
+</html>
