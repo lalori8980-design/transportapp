@@ -12,21 +12,23 @@ const app = express();
 
 // Views
 app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
+
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
 
 // Body parsers
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Static files (para usar /css/theme.css y /js/theme.js)
-app.use(express.static(path.join(__dirname, "..", "public")));
-
 // Sessions (ANTES de /admin)
-app.use(session({
-    secret: process.env.SESSION_SECRET || "dev_secret_change_me",
-    resave: false,
-    saveUninitialized: false
-}));
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || "dev_secret_change_me",
+        resave: false,
+        saveUninitialized: false,
+    })
+);
 
 // Routes
 app.use("/", publicRoutes);
@@ -44,6 +46,6 @@ app.get("/health", async (req, res) => {
 
 // Start
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
 });
