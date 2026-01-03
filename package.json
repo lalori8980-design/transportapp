@@ -2,10 +2,10 @@
   "name": "servicios_transporte",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "server.js.js",
-    "start": "server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
