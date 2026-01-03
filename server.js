@@ -36,20 +36,66 @@ app.use("/admin", adminRoutes);
 
 // Health check
 app.get("/health", async (req, res) => {
-    const hasDb =
-        process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
+    // I only expose non-sensitive config. I never return passwords or secrets.
+    const now = new Date();
+    const uptimeSec = Math.round(process.uptime());
+    const nodeVersion = process.version;
 
-    if (!hasDb) {
-        return res.json({ ok: true, db: false, note: "DB not configured yet" });
+    const dbConfigured =
+        !!process.env.DB_HOST && !!process.env.DB_USER && !!process.env.DB_NAME;
+
+    const base = {
+        ok: true,
+        ts: now.toISOString(),
+        uptimeSec,
+        node: nodeVersion,
+        env: process.env.NODE_ENV || "unknown",
+        baseUrl: process.env.BASE_URL || null,
+        app: {
+            hostname: process.env.HOSTNAME || null,
+            pid: process.pid,
+        },
+        db: {
+            configured: dbConfigured,
+            host: process.env.DB_HOST || null,
+            port: Number(process.env.DB_PORT || 3306),
+            name: process.env.DB_NAME || null,
+            user: process.env.DB_USER || null,
+            pingOk: false,
+            latencyMs: null,
+            error: null,
+        },
+    };
+
+    if (!dbConfigured) {
+        return res.json({ ...base, ok: true, note: "DB not configured yet" });
     }
 
+    const t0 = Date.now();
     try {
+        // I run a simple query to confirm DB connectivity.
         const [[row]] = await pool.query("SELECT 1 AS ok");
-        res.json({ ok: row.ok === 1, db: true });
+        base.db.pingOk = row?.ok === 1;
+        base.db.latencyMs = Date.now() - t0;
+
+        return res.json(base);
     } catch (e) {
-        res.status(500).json({ ok: false, db: false, error: e.message });
+        base.ok = false;
+        base.db.pingOk = false;
+        base.db.latencyMs = Date.now() - t0;
+
+        // I return only safe error details for debugging.
+        base.db.error = {
+            code: e.code || null,
+            errno: e.errno || null,
+            sqlState: e.sqlState || null,
+            message: e.message || String(e),
+        };
+
+        return res.status(500).json(base);
     }
 });
+
 
 // Start
 const PORT = process.env.PORT || 3000;
