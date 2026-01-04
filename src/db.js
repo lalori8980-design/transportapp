@@ -4,7 +4,7 @@ const hasDb =
     !!process.env.DB_HOST &&
     !!process.env.DB_USER &&
     !!process.env.DB_NAME &&
-    !!process.env.DB_PASS; // 👈 agrega esto
+    !!process.env.DB_PASS;
 
 let pool = null;
 
