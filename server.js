@@ -146,3 +146,14 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
 });
+
+// I trust the proxy so req.protocol is correct behind hosting/proxy
+app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
+    res.locals.baseUrl = baseUrl;
+    res.locals.fullUrl = baseUrl + req.originalUrl.split("?")[0];
+    next();
+});
+
