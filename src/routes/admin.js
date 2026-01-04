@@ -1,11 +1,19 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const { pool } = require("../db");
+const { pool, hasDb } = require("../db");
 
 const router = express.Router();
 
+function requireDb(req, res, next) {
+    if (hasDb) return next();
+    return res.status(503).render("maintenance", {
+        title: "Sitio en configuración",
+        message: "El sitio está activo, pero la base de datos aún no está configurada. Intenta más tarde.",
+    });
+}
+
 function requireAdmin(req, res, next) {
-    if (req.session && req.session.admin) return next();
+    if (req.session?.admin?.role === "ADMIN") return next();
     return res.redirect("/admin/login");
 }
 
@@ -13,27 +21,56 @@ function directionLabel(direction) {
     return direction === "VIC_TO_LLE" ? "Victoria → Llera" : "Llera → Victoria";
 }
 
+function regenSession(req) {
+    return new Promise((resolve, reject) => {
+        req.session.regenerate((err) => (err ? reject(err) : resolve()));
+    });
+}
+
 // LOGIN
 router.get("/login", (req, res) => {
+    if (req.session?.admin) return res.redirect("/admin/agenda");
     res.render("admin_login", { error: null });
 });
 
-router.post("/login", async (req, res) => {
-    const { user, pass } = req.body;
+router.post("/login", requireDb, async (req, res) => {
+    const username = String(req.body.user || "").trim();
+    const pass = String(req.body.pass || "");
 
-    if (user !== process.env.ADMIN_USER) {
+    if (!username || !pass) {
+        return res.render("admin_login", { error: "Captura usuario y contraseña." });
+    }
+
+    const [[u]] = await pool.query(
+        `
+      SELECT id, username, pass_hash, role, active
+      FROM transporte_admin_users
+      WHERE username = ?
+      LIMIT 1
+    `,
+        [username]
+    );
+
+    if (!u || Number(u.active) !== 1) {
         return res.render("admin_login", { error: "Usuario o contraseña incorrectos." });
     }
 
-    const hash = process.env.ADMIN_PASS_HASH;
-    if (!hash) return res.status(500).send("Falta ADMIN_PASS_HASH en .env");
-
-    const ok = await bcrypt.compare(pass, hash);
+    const ok = await bcrypt.compare(pass, u.pass_hash);
     if (!ok) {
         return res.render("admin_login", { error: "Usuario o contraseña incorrectos." });
     }
 
-    req.session.admin = true;
+    await regenSession(req);
+
+    req.session.admin = {
+        id: u.id,
+        username: u.username,
+        role: u.role,
+    };
+
+    // opcional: guardar last_login
+    await pool.query(`UPDATE transporte_admin_users SET last_login_at = NOW() WHERE id = ?`, [u.id]);
+
     return res.redirect("/admin/agenda");
 });
 
@@ -42,7 +79,7 @@ router.post("/logout", (req, res) => {
 });
 
 // AGENDA (por día)
-router.get("/agenda", requireAdmin, async (req, res) => {
+router.get("/agenda", requireAdmin, requireDb, async (req, res) => {
     const date = req.query.date || new Date().toISOString().slice(0, 10);
 
     const [trips] = await pool.query(
@@ -64,7 +101,7 @@ router.get("/agenda", requireAdmin, async (req, res) => {
 });
 
 // DETALLE SALIDA
-router.get("/trip/:tripId", requireAdmin, async (req, res) => {
+router.get("/trip/:tripId", requireAdmin, requireDb, async (req, res) => {
     const { tripId } = req.params;
     const onlyPending = req.query.onlyPending === "1";
 
@@ -83,7 +120,7 @@ router.get("/trip/:tripId", requireAdmin, async (req, res) => {
         `
             SELECT r.*,
                    (SELECT tk.code FROM transporte_tickets tk WHERE tk.reservation_id = r.id LIMIT 1) AS ticket_code,
-      GROUP_CONCAT(p.passenger_name ORDER BY p.id SEPARATOR ', ') AS passenger_names
+             GROUP_CONCAT(p.passenger_name ORDER BY p.id SEPARATOR ', ') AS passenger_names
             FROM transporte_reservations r
                 LEFT JOIN transporte_reservation_passengers p ON p.reservation_id = r.id
             WHERE r.trip_id = ?
@@ -99,7 +136,7 @@ router.get("/trip/:tripId", requireAdmin, async (req, res) => {
         reservations,
         directionLabel,
         onlyPending,
-        baseUrl: process.env.BASE_URL
+        baseUrl: process.env.BASE_URL,
     });
 });
 
@@ -111,15 +148,14 @@ function randomTicketCode(len = 12) {
 }
 
 // MARCAR PAGADO + CREAR TICKET + REDIRECT CON RETURN
-router.post("/reservation/:reservationId/mark-paid", requireAdmin, async (req, res) => {
+router.post("/reservation/:reservationId/mark-paid", requireAdmin, requireDb, async (req, res) => {
     const { reservationId } = req.params;
-    const method = (req.body.method === "TRANSFER") ? "TRANSFER" : "CASH";
+    const method = req.body.method === "TRANSFER" ? "TRANSFER" : "CASH";
 
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
 
-        // lock reservation
         const [[r]] = await conn.query(
             `
                 SELECT r.id, r.status, r.trip_id
@@ -135,14 +171,13 @@ router.post("/reservation/:reservationId/mark-paid", requireAdmin, async (req, r
 
             await conn.query(
                 `
-        INSERT INTO transporte_payments(reservation_id, method, status, verified_at)
-        VALUES (?, ?, 'VERIFIED', NOW())
-        `,
+                    INSERT INTO transporte_payments(reservation_id, method, status, verified_at)
+                    VALUES (?, ?, 'VERIFIED', NOW())
+                `,
                 [reservationId, method]
             );
         }
 
-        // only one ticket
         const [[existing]] = await conn.query(
             `SELECT code FROM transporte_tickets WHERE reservation_id=?`,
             [reservationId]
@@ -160,19 +195,15 @@ router.post("/reservation/:reservationId/mark-paid", requireAdmin, async (req, r
                     );
                     code = candidate;
                     break;
-                } catch {
-                    // duplicate, retry
-                }
+                } catch {}
             }
             if (!code) throw new Error("No pude generar ticket. Intenta otra vez.");
         }
 
         await conn.commit();
 
-        // ✅ return to the same trip detail after viewing ticket
         const returnTo = `/admin/trip/${r.trip_id}`;
         return res.redirect(`/ticket/${code}?return=${encodeURIComponent(returnTo)}`);
-
     } catch (e) {
         await conn.rollback();
         return res.status(500).send(e.message);
@@ -181,8 +212,7 @@ router.post("/reservation/:reservationId/mark-paid", requireAdmin, async (req, r
     }
 });
 
-// CANCELAR
-router.post("/reservation/:reservationId/cancel", requireAdmin, async (req, res) => {
+router.post("/reservation/:reservationId/cancel", requireAdmin, requireDb, async (req, res) => {
     const { reservationId } = req.params;
 
     const conn = await pool.getConnection();
@@ -200,9 +230,11 @@ router.post("/reservation/:reservationId/cancel", requireAdmin, async (req, res)
         }
 
         await conn.query(
-            `UPDATE transporte_payments
-             SET status='REJECTED'
-             WHERE reservation_id=? AND status='PENDING'`,
+            `
+                UPDATE transporte_payments
+                SET status='REJECTED'
+                WHERE reservation_id=? AND status='PENDING'
+            `,
             [reservationId]
         );
 

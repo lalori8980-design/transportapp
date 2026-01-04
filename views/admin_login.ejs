@@ -3,9 +3,11 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/theme.css" rel="stylesheet">
-    <title>Admin</title>
+
+    <title>TransportApp · Admin</title>
 
     <style>
         /* Fondo con blur (glass) */
@@ -58,7 +60,7 @@
             border: 1px solid var(--border);
             background: var(--chip-bg);
             color: var(--chip-text);
-            font-weight: 700;
+            font-weight: 800;
             font-size: .9rem;
         }
 
@@ -68,7 +70,9 @@
             background: transparent;
             color: var(--text);
         }
-        .form-control::placeholder{ color: color-mix(in srgb, var(--muted) 85%, transparent); }
+        .form-control::placeholder{
+            color: color-mix(in srgb, var(--muted) 85%, transparent);
+        }
 
         .form-control:focus{
             border-color: color-mix(in srgb, var(--wine) 65%, var(--border));
@@ -78,15 +82,19 @@
         .btn-admin{
             border-radius: 14px;
             padding: .75rem 1rem;
-            font-weight: 800;
+            font-weight: 900;
+            letter-spacing: .2px;
         }
 
         .back-link{
-            color: #fff;
+            color: color-mix(in srgb, var(--text) 92%, transparent);
             text-decoration: none;
             opacity: .92;
         }
-        .back-link:hover{ opacity: 1; text-decoration: underline; }
+        .back-link:hover{
+            opacity: 1;
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -100,8 +108,10 @@
 
         <div class="d-flex align-items-center gap-2">
             <a class="back-link small d-none d-sm-inline" href="/">Volver</a>
+
             <button id="themeToggle" class="theme-btn" type="button" aria-label="Cambiar tema">
-                <span id="themeIcon">🌙</span> <span class="d-none d-sm-inline">Tema</span>
+                <span id="themeIcon">🌙</span>
+                <span class="d-none d-sm-inline">Tema</span>
             </button>
         </div>
     </div>
@@ -120,24 +130,46 @@
             </div>
 
             <% if (error) { %>
-                <div class="alert alert-danger mb-3"><%= error %></div>
+                <div class="alert alert-danger mb-3" role="alert"><%= error %></div>
             <% } %>
 
-            <form method="POST" action="/admin/login" class="vstack gap-3 mt-2">
+            <form method="POST" action="/admin/login" class="vstack gap-3 mt-2" autocomplete="on">
                 <div>
-                    <label class="form-label subtle mb-1">Usuario</label>
-                    <input name="user" class="form-control" placeholder="Usuario" required />
+                    <label for="user" class="form-label subtle mb-1">Usuario</label>
+                    <input
+                            id="user"
+                            name="user"
+                            class="form-control"
+                            placeholder="Usuario"
+                            required
+                            autofocus
+                            autocomplete="username"
+                            inputmode="text"
+                            autocapitalize="none"
+                            spellcheck="false"
+                    />
                 </div>
 
                 <div>
-                    <label class="form-label subtle mb-1">Contraseña</label>
-                    <input name="pass" type="password" class="form-control" placeholder="Contraseña" required />
+                    <label for="pass" class="form-label subtle mb-1">Contraseña</label>
+                    <input
+                            id="pass"
+                            name="pass"
+                            type="password"
+                            class="form-control"
+                            placeholder="Contraseña"
+                            required
+                            autocomplete="current-password"
+                    />
                 </div>
 
-                <button class="btn btn-wine btn-admin w-100">Entrar</button>
+                <button class="btn btn-wine btn-admin w-100" type="submit">Entrar</button>
 
                 <div class="text-center small subtle mt-2">
-                    Si no eres admin, regresa a <a href="/" class="text-decoration-none" style="color: var(--wine); font-weight: 700;">TransportApp</a>.
+                    Si no eres admin, regresa a
+                    <a href="/" class="text-decoration-none" style="color: var(--wine); font-weight: 800;">
+                        TransportApp
+                    </a>.
                 </div>
             </form>
 
