@@ -34,6 +34,9 @@ const adminRoutes = require("./src/routes/admin");
 
 const app = express();
 
+// HTTPS (Hostinger)
+app.set("trust proxy", 1);
+
 // Views
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
@@ -51,6 +54,13 @@ app.use(
         secret: process.env.SESSION_SECRET || "dev_secret_change_me",
         resave: false,
         saveUninitialized: false,
+        name: "ta.sid",
+        cookie: {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 1000 * 60 * 60 * 12, // 12h
+        },
     })
 );
 
@@ -89,10 +99,7 @@ app.get("/health", async (req, res) => {
             cwd: process.cwd(),
             dir: __dirname,
 
-            envFile: {
-                loaded: envInfo.loaded,
-                path: envInfo.path,
-            },
+            envFile: { loaded: envInfo.loaded, path: envInfo.path },
 
             hasPool: !!pool,
             envKeysDb: Object.keys(process.env).filter((k) => k.startsWith("DB_")).sort(),

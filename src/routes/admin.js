@@ -34,7 +34,7 @@ router.get("/login", (req, res) => {
 });
 
 router.post("/login", requireDb, async (req, res) => {
-    const username = String(req.body.user || "").trim();
+    const username = String(req.body.user || "").trim().toLowerCase();
     const pass = String(req.body.pass || "");
 
     if (!username || !pass) {
@@ -43,11 +43,11 @@ router.post("/login", requireDb, async (req, res) => {
 
     const [[u]] = await pool.query(
         `
-      SELECT id, username, pass_hash, role, active
-      FROM transporte_admin_users
-      WHERE username = ?
-      LIMIT 1
-    `,
+            SELECT id, username, pass_hash, role, active
+            FROM transporte_admin_users
+            WHERE LOWER(username) = ?
+                LIMIT 1
+        `,
         [username]
     );
 
@@ -62,13 +62,8 @@ router.post("/login", requireDb, async (req, res) => {
 
     await regenSession(req);
 
-    req.session.admin = {
-        id: u.id,
-        username: u.username,
-        role: u.role,
-    };
+    req.session.admin = { id: u.id, username: u.username, role: u.role };
 
-    // opcional: guardar last_login
     await pool.query(`UPDATE transporte_admin_users SET last_login_at = NOW() WHERE id = ?`, [u.id]);
 
     return res.redirect("/admin/agenda");
