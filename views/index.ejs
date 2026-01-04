@@ -7,6 +7,17 @@
     <link href="/css/theme.css" rel="stylesheet">
     <title>TransportApp</title>
 
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/android-chrome-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/android-chrome-512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+
+    <link rel="manifest" href="/assets/site.webmanifest">
+    <meta name="theme-color" content="#6a0f1f">
+
+
     <meta property="og:locale" content="es_MX"/>
     <meta property="og:type" content="website"/>
     <meta property="og:site_name" content="Servicio de transporte"/>
@@ -310,6 +321,49 @@
             }
         }
 
+        .hero-split{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap: 18px;
+        }
+
+        .hero-left{
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .hero-right{
+            flex: 0 0 auto;
+            display:flex;
+            align-items:center;
+            justify-content:flex-end;
+        }
+
+        .hero-logo-big{
+            width: 280px;      /* <- ajusta si lo quieres más grande/chico */
+            max-width: 34vw;
+            height: auto;
+            object-fit: contain;
+        }
+
+        /* Mobile: logo abajo centrado */
+        @media (max-width: 992px){
+            .hero-split{
+                flex-direction:column;
+                align-items:flex-start;
+            }
+            .hero-right{
+                width:100%;
+                justify-content:center;
+                margin-top: 10px;
+            }
+            .hero-logo-big{
+                width: min(320px, 90%);
+                max-width: 90%;
+            }
+        }
+
 
     </style>
 </head>
@@ -318,7 +372,7 @@
 <nav class="navbar navbar-dark app-navbar">
     <div class="container d-flex justify-content-between align-items-center position-relative">
         <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-            <img src="assets/logo-32.png" alt="TransportApp" class="brand-logo" width="32" height="32">
+            <img src="assets/favicon-32.png" alt="TransportApp" class="brand-logo" width="32" height="32">
             <span class="fw-bold">TransportApp</span>
         </a>
 
@@ -333,19 +387,22 @@
 <main class="container py-4">
 
     <!-- HERO (clean) -->
-    <div class="hero-min">
-        <div class="hero-brand">
-            <img src="/assets/logo.png" class="hero-logo" alt="Servicio de transporte">
-        </div>
-        <h1 class="h3 title">Servicio de Transporte</h1>
-        <div class="sub">Ciudad Victoria ↔ Llera · 7 pasajeros · Paquetería / Mandados</div>
+    <div class="hero-min hero-split">
+        <div class="hero-left">
+            <h1 class="h3 title">Servicio de Transporte</h1>
+            <div class="sub">Ciudad Victoria ↔ Llera · 7 pasajeros · Paquetería / Mandados</div>
 
-        <div class="hero-actions">
-            <a class="btn btn-wine" href="/reserve">Reservar</a>
-            <a class="btn btn-wa" target="_blank"
-               href="https://wa.me/52<%= ('8344756376').replace(/\\D/g, '') %>?text=<%= encodeURIComponent('Hola, quiero información del servicio de transporte.') %>">
-                WhatsApp
-            </a>
+            <div class="hero-actions">
+                <a class="btn btn-wine" href="/reserve">Reservar</a>
+                <a class="btn btn-wa" target="_blank"
+                   href="https://wa.me/52<%= ('8344756376').replace(/\\D/g, '') %>?text=<%= encodeURIComponent('Hola, quiero información del servicio de transporte.') %>">
+                    WhatsApp
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-right">
+            <img class="hero-logo-big" src="/assets/logo.png" alt="Servicio de transporte">
         </div>
     </div>
 
@@ -439,15 +496,14 @@
 
                         <iframe class="map-frame" loading="lazy"
                                 referrerpolicy="no-referrer-when-downgrade"
-                                src="https://www.google.com/maps?q=23.318790,-99.022468&z=16&output=embed"></iframe>
-
+                                src="https://www.google.com/maps?q=23.317522,-99.023979&z=16&output=embed"></iframe>
                         <div class="map-actions">
                             <a class="btn btn-wine btn-sm rounded-4" target="_blank"
-                               href="https://www.google.com/maps?q=23.318790,-99.022468">Abrir</a>
+                               href="https://www.google.com/maps?q=23.317522,-99.023979">Abrir</a>
                             <a class="btn btn-ghost btn-sm rounded-4" target="_blank"
-                               href="https://www.google.com/maps/dir/?api=1&destination=23.318790,-99.022468">Cómo
-                                llegar</a>
+                               href="https://www.google.com/maps/dir/?api=1&destination=23.317522,-99.023979">Cómo llegar</a>
                         </div>
+
                     </div>
 
 
