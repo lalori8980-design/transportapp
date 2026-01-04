@@ -125,13 +125,37 @@
             <ul class="kv mb-3">
                 <li>
                     <span class="k">Ruta</span>
-                    <span class="v"><%= r.direction === "VIC_TO_LLE" ? "Victoria - Llera" : "Llera - Victoria" %></span>
+                    <span class="v" id="routeText"><%= r.direction === "VIC_TO_LLE" ? "Victoria - Llera" : "Llera - Victoria" %></span>
                 </li>
-                <li><span class="k">Fecha</span><span class="v"><%= r.trip_date %></span></li>
-                <li><span class="k">Hora</span><span class="v"><%= r.depart_time %></span></li>
-                <li><span class="k">Contacto</span><span class="v"><%= r.customer_name %></span></li>
+                <li><span class="k">Fecha</span><span class="v" id="dateText"><%= r.trip_date %></span></li>
+                <li><span class="k">Hora</span><span class="v" id="timeText"><%= r.depart_time %></span></li>
+                <li><span class="k">Contacto</span><span class="v" id="nameText"><%= r.customer_name %></span></li>
                 <li><span class="k">Teléfono</span><span class="v" id="phoneText"><%= r.phone %></span></li>
-                <li><span class="k">Estado</span><span class="v">Pendiente de confirmación</span></li>
+
+                <!-- Opcionales: Tipo / Pasajeros / Detalles -->
+                <% const _type = (r.reservation_type || r.type || r.booking_type || "").toString(); %>
+                <% const _pax = (r.passengers || r.pax || "").toString(); %>
+                <% const _pkg = (r.package_details || r.package_info || r.details || "").toString(); %>
+
+                <% if (_type) { %>
+                    <li><span class="k">Tipo</span><span class="v" id="typeText"><%= _type %></span></li>
+                <% } else { %>
+                    <li><span class="k">Tipo</span><span class="v" id="typeText">No especificado</span></li>
+                <% } %>
+
+                <% if (_pax) { %>
+                    <li><span class="k">Pasajeros</span><span class="v" id="paxText"><%= _pax %></span></li>
+                <% } else { %>
+                    <li><span class="k">Pasajeros</span><span class="v" id="paxText"></span></li>
+                <% } %>
+
+                <% if (_pkg) { %>
+                    <li><span class="k">Paquetería</span><span class="v" id="pkgText"><%= _pkg %></span></li>
+                <% } else { %>
+                    <li><span class="k">Paquetería</span><span class="v" id="pkgText"></span></li>
+                <% } %>
+
+                <li><span class="k">Estado</span><span class="v" id="statusText">Pendiente de confirmación</span></li>
             </ul>
 
             <div class="note">
@@ -148,28 +172,93 @@
 </main>
 
 <script src="/js/theme.js"></script>
+
+<!-- ✅ JSON seguro para evitar el error "Expression expected" en el editor -->
+<script type="application/json" id="reservationJson"><%- JSON.stringify({
+        folio,
+        direction: r.direction,
+        trip_date: r.trip_date,
+        depart_time: r.depart_time,
+        customer_name: r.customer_name,
+        phone: r.phone,
+        reservation_type: r.reservation_type || r.type || r.booking_type || "",
+        passengers: r.passengers || r.pax || "",
+        package_details: r.package_details || r.package_info || r.details || ""
+    }).replace(/</g, "\\u003c") %></script>
+
 <script>
     const copyBtn = document.getElementById('copyBtn');
-    const folioText = document.getElementById('folioText');
-    const phoneText = document.getElementById('phoneText');
     const waBtn = document.getElementById('waBtn');
+
+    // Número del admin/servicio (a quien le llega el WhatsApp)
+    const adminWa = "8344756376";
 
     function digitsOnly(s){ return String(s || '').replace(/\D/g,''); }
 
-    // WhatsApp link (si hay número válido)
-    const folio = folioText?.innerText?.trim() || '';
-    const phone = digitsOnly(phoneText?.innerText || '');
-    const msg = `Hola, ya realicé mi reserva. Folio: ${folio}`;
-    if (phone.length >= 10) {
-        waBtn.href = `https://wa.me/52${8344756376}?text=${encodeURIComponent(msg)}`;
-    } else {
-        waBtn.classList.add('disabled');
-        waBtn.setAttribute('aria-disabled', 'true');
+    // Datos (desde el JSON del servidor)
+    const data = JSON.parse(document.getElementById("reservationJson")?.textContent || "{}");
+
+    function niceRoute(dir){
+        return dir === "VIC_TO_LLE" ? "Victoria → Llera" : "Llera → Victoria";
     }
 
+    function niceType(t){
+        const x = String(t || '').toLowerCase();
+        if (x.includes('paq') || x.includes('pack')) return 'Paquetería';
+        if (x.includes('pas')) return 'Pasaje';
+        return t ? t : 'No especificado';
+    }
+
+    const typeLabel = niceType(data.reservation_type);
+    const isPackage = typeLabel.toLowerCase().includes("paqu");
+
+    const lines = [
+        "✅ *Nueva reserva*",
+        "",
+        `📌 *Folio:* ${data.folio || "—"}`,
+        `👤 *Nombre:* ${data.customer_name || "—"}`,
+        `📞 *Teléfono:* ${data.phone || "—"}`,
+        `🧭 *Ruta:* ${niceRoute(data.direction)}`,
+        `📅 *Fecha:* ${data.trip_date || "—"}`,
+        `🕒 *Hora:* ${data.depart_time || "—"}`,
+        `🎫 *Tipo:* ${typeLabel}`
+    ];
+
+    // Pasajeros (solo si aplica)
+    const pax = Number(String(data.passengers || "").trim());
+    if (!Number.isNaN(pax) && pax > 0 && typeLabel.toLowerCase().includes("pas")) {
+        lines.push(`👥 *Pasajeros:* ${pax}`);
+    }
+
+    // Estado fijo
+    lines.push(`⏳ *Estado:* Pendiente de confirmación`);
+
+    // Paquetería: detalles
+    if (isPackage) {
+        lines.push("");
+        lines.push("📦 *Detalles de paquetería:*");
+        lines.push(data.package_details ? String(data.package_details) : "—");
+    }
+
+    // Link al sitio (útil)
+    lines.push("");
+    lines.push("🌐 " + window.location.origin);
+
+    const msg = lines.join("\n");
+
+    // Link WhatsApp al admin
+    const adminDigits = digitsOnly(adminWa);
+    if (adminDigits.length >= 10) {
+        waBtn.href = `https://wa.me/52${adminDigits}?text=${encodeURIComponent(msg)}`;
+    } else {
+        waBtn.classList.add('disabled');
+        waBtn.setAttribute('aria-disabled','true');
+    }
+
+    // Copiar folio
     copyBtn?.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(folio);
+        try{
+            await navigator.clipboard.writeText(String(data.folio || ''));
             const old = copyBtn.textContent;
             copyBtn.textContent = 'Copiado ✅';
             setTimeout(() => copyBtn.textContent = old, 1200);
