@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="es" data-theme="light">
+
 <head>
     <%- include('partials/head') %>
     <title>Reservar</title>
@@ -9,36 +10,41 @@
            Reserva - mejoras UI
            ========================= */
 
-        .form-label{ font-weight: 600; }
-        .help{ color: var(--muted); font-size: .9rem; }
+        .form-label {
+            font-weight: 600;
+        }
+
+        .help {
+            color: var(--muted);
+            font-size: .9rem;
+        }
 
         /* Stepper estilo "lista desplegable" (form-select) pero con + / - */
-        .stepper{
+        .stepper {
             width: 100%;
             display: flex;
             align-items: center;
             justify-content: space-between;
 
             /* look de form-select */
-            height: calc(2.375rem + 2px);        /* altura Bootstrap */
+            height: calc(2.375rem + 2px); /* altura Bootstrap */
             padding: .375rem .75rem;
             border: 1px solid var(--border);
-            border-radius: .375rem;             /* como select */
-            background: var(--card);            /* o #fff si quieres fijo */
-            box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+            border-radius: .375rem; /* como select */
+            background: var(--card); /* o #fff si quieres fijo */
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06);
             gap: 10px;
         }
 
         /* focus como input/select */
-        .stepper:focus-within{
+        .stepper:focus-within {
             border-color: color-mix(in srgb, var(--wine) 55%, var(--border));
-            box-shadow:
-                    inset 0 1px 2px rgba(0,0,0,.06),
-                    0 0 0 .25rem color-mix(in srgb, var(--wine) 22%, transparent);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06),
+            0 0 0 .25rem color-mix(in srgb, var(--wine) 22%, transparent);
         }
 
         /* botones tipo “control” interno */
-        .stepper .btn-step{
+        .stepper .btn-step {
             width: 34px;
             height: 30px;
             border-radius: .375rem;
@@ -52,18 +58,18 @@
             justify-content: center;
         }
 
-        .stepper .btn-step:hover{
+        .stepper .btn-step:hover {
             border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
             background: color-mix(in srgb, var(--card) 75%, transparent);
         }
 
-        .stepper .btn-step:disabled{
+        .stepper .btn-step:disabled {
             opacity: .45;
             cursor: not-allowed;
         }
 
         /* número centrado como valor del select */
-        .stepper .count{
+        .stepper .count {
             flex: 1;
             text-align: center;
             font-weight: 650;
@@ -73,121 +79,218 @@
         }
 
         /* Horarios como pills + secciones */
-        .slots-wrap{
-            border:1px solid var(--border);
+        .slots-wrap {
+            border: 1px solid var(--border);
             border-radius: 18px;
             padding: 14px;
             background: color-mix(in srgb, var(--card) 90%, transparent);
         }
-        .slots-head{
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-end;
-            gap:12px;
-            flex-wrap:wrap;
+
+        .slots-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
             margin-bottom: 10px;
         }
-        .slots-title{
+
+        .slots-title {
             font-weight: 650;
             letter-spacing: -.01em;
             margin: 0;
         }
-        .slots-sub{ color: var(--muted); font-size: .9rem; }
 
-        .slot-section{
+        .slots-sub {
+            color: var(--muted);
+            font-size: .9rem;
+        }
+
+        .slot-section {
             margin-top: 12px;
         }
-        .slot-section:first-child{ margin-top: 0; }
 
-        .section-label{
-            display:flex;
-            align-items:center;
-            gap:8px;
+        .slot-section:first-child {
+            margin-top: 0;
+        }
+
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             color: var(--muted);
             font-weight: 650;
             font-size: .9rem;
             margin-bottom: 8px;
         }
 
-        .slots{
-            display:flex;
-            flex-wrap:wrap;
-            gap:10px;
+        .slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .slot-pill{
-            border:1px solid var(--border);
+        .slot-pill {
+            border: 1px solid var(--border);
             background: color-mix(in srgb, var(--card) 92%, transparent);
             border-radius: 999px;
             padding: 10px 12px;
-            cursor:pointer;
+            cursor: pointer;
             transition: transform .06s ease, border-color .12s ease, background .12s ease;
             color: var(--text);
-            user-select:none;
+            user-select: none;
 
-            display:inline-flex;
-            align-items:center;
-            gap:10px;
-            line-height:1;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1;
         }
-        .slot-pill:hover{
+
+        .slot-pill:hover {
             transform: translateY(-1px);
             border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
             background: color-mix(in srgb, var(--card) 78%, transparent);
         }
-        .slot-pill[aria-selected="true"]{
+
+        .slot-pill[aria-selected="true"] {
             border-color: color-mix(in srgb, var(--wine) 75%, var(--border));
             background: color-mix(in srgb, var(--chip-bg) 70%, var(--card));
-            box-shadow: 0 10px 26px rgba(2,6,23,.10);
+            box-shadow: 0 10px 26px rgba(2, 6, 23, .10);
         }
 
-        .slot-pill .time{
+        .slot-pill .time {
             font-weight: 650;
-            white-space:nowrap;
+            white-space: nowrap;
         }
-        .slot-pill .mini{
-            display:inline-flex;
-            align-items:center;
-            gap:.35rem;
-            padding:.18rem .5rem;
-            border-radius:999px;
-            border:1px solid var(--border);
+
+        .slot-pill .mini {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .18rem .5rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
             background: color-mix(in srgb, var(--card) 86%, transparent);
             color: var(--muted);
             font-size: .82rem;
-            white-space:nowrap;
+            white-space: nowrap;
         }
 
-        .slot-pill.is-warning .mini{
-            background: rgba(241,220,33,.14);
+        .slot-pill.is-warning .mini {
+            background: rgba(241, 220, 33, .14);
             color: color-mix(in srgb, #f1dc21 60%, var(--text));
         }
-        .slot-pill.is-danger{
-            opacity:.55;
-            pointer-events:none;
+
+        .slot-pill.is-danger {
+            opacity: .55;
+            pointer-events: none;
         }
 
         /* separaciones internas */
-        .card-soft .row.g-3 > [class*="col-"]{
+        .card-soft .row.g-3 > [class*="col-"] {
             padding-top: 2px;
         }
 
         /* Payment blocks */
-        #onlineWrap .alert{
+        #onlineWrap .alert {
             border-radius: 16px;
             border: 1px solid var(--border);
         }
 
-        .pill{
-            display:inline-flex; align-items:center; gap:.5rem;
-            padding:.45rem .75rem; border-radius:999px;
-            border:1px solid var(--border);
-            background:var(--chip-bg);
-            color:var(--chip-text);
-            font-weight:650;
-            font-size:.95rem;
-            white-space:nowrap;
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .45rem .75rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-weight: 650;
+            font-size: .95rem;
+            white-space: nowrap;
         }
+
+        /* Transfer actions (copy buttons) */
+        .transfer-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: .5rem;
+        }
+
+        .tbtn {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+
+            padding: .55rem .8rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+
+            background: color-mix(in srgb, var(--card) 92%, transparent);
+            color: var(--text);
+
+            font-weight: 650;
+            letter-spacing: -.01em;
+            line-height: 1;
+
+            transition: transform .06s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+            user-select: none;
+        }
+
+        .tbtn:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
+            background: color-mix(in srgb, var(--card) 78%, transparent);
+            box-shadow: 0 10px 26px rgba(2, 6, 23, .10);
+        }
+
+        .tbtn:active {
+            transform: translateY(0);
+        }
+
+        .tbtn:focus-visible {
+            outline: none;
+            border-color: color-mix(in srgb, var(--wine) 55%, var(--border));
+            box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--wine) 22%, transparent);
+        }
+
+        .tbtn-ic {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 86%, transparent);
+
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: .95rem;
+        }
+
+        .tbtn-txt {
+            font-size: .92rem;
+        }
+        /* Validación bonita (Bootstrap-ish pero con tus tokens) */
+        .form-control.is-invalid,
+        .form-select.is-invalid{
+            border-color: color-mix(in srgb, var(--wine) 60%, #dc3545);
+            box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--wine) 18%, transparent);
+        }
+
+        .invalid-feedback{
+            display: none;
+            margin-top: .35rem;
+            font-size: .9rem;
+            color: color-mix(in srgb, var(--wine) 65%, #dc3545);
+        }
+
+        .is-invalid + .invalid-feedback{
+            display: block;
+        }
+
 
     </style>
 </head>
@@ -224,7 +327,7 @@
             <div class="alert alert-danger mb-3"><%= error %></div>
         <% } %>
 
-        <form id="reserveForm" method="POST" action="/reserve" class="row g-3">
+        <form id="reserveForm" method="POST" action="/reserve" class="row g-3" novalidate>
 
             <!-- 1) Origen -->
             <div class="col-md-6">
@@ -250,7 +353,7 @@
             <!-- 3) Fecha (default: hoy) -->
             <div class="col-md-4">
                 <label class="form-label">¿Cuándo viajas?</label>
-                <input id="trip_date" name="trip_date" type="date" class="form-control" required />
+                <input id="trip_date" name="trip_date" type="date" class="form-control" required/>
                 <div class="form-text subtle">Por defecto se coloca el día de hoy.</div>
             </div>
 
@@ -299,7 +402,8 @@
             <!-- PAQUETERÍA: Nombre de contacto (solo si es PACKAGE) -->
             <div class="col-md-6" id="packageContactWrap">
                 <label class="form-label">Nombre de contacto</label>
-                <input id="package_contact_name" name="customer_name" class="form-control" placeholder="Ej: Juan Pérez" />
+                <input id="package_contact_name" name="customer_name" class="form-control"
+                       placeholder="Ej: Juan Pérez"/>
                 <div class="form-text subtle">Solo aplica para paquetería.</div>
             </div>
 
@@ -307,7 +411,8 @@
             <div class="col-md-6">
                 <label class="form-label">Teléfono</label>
                 <input id="phone" name="phone" class="form-control" required
-                       inputmode="numeric" pattern="[0-9]{10}" placeholder="Ej: 8344756376" />
+                       inputmode="numeric" pattern="[0-9]{10}" placeholder="Ej: 8344756376"/>
+                <div class="invalid-feedback">Ingresa un teléfono válido (10 dígitos).</div>
             </div>
 
             <!-- MÉTODO DE PAGO -->
@@ -315,7 +420,7 @@
                 <label class="form-label">Método de pago</label>
                 <select id="payment_method" name="payment_method" class="form-select" required>
                     <option value="TAQUILLA" selected>Taquilla</option>
-                    <!-- <option value="TRANSFERENCIA">Transferencia</option> -->
+                    <option value="TRANSFERENCIA">Transferencia</option>
                     <!-- <option value="ONLINE">Pago en línea</option> -->
                 </select>
                 <div class="form-text subtle">Elige cómo deseas pagar tu reserva.</div>
@@ -349,27 +454,37 @@
                     </div>
 
                     <ul class="kv mb-3">
-                        <li><span class="k">Banco</span><span class="v" id="bankName">BBVA</span></li>
-                        <li><span class="k">Beneficiario</span><span class="v" id="bankOwner">TransportApp</span></li>
+                        <li><span class="k">Banco: </span><span class="v" id="bankName">BBVA</span></li>
+                        <li><span class="k">Beneficiario: </span><span class="v" id="bankOwner">Gary Treviño</span></li>
                         <li>
-                            <span class="k">CLABE</span>
-                            <span class="v mono" id="bankClabe">012345678901234567</span>
+                            <span class="k">Número de tarjeta: </span>
+                            <span class="v mono" id="bankClabe">4152 3142 8477 3416</span>
                         </li>
                     </ul>
 
-                    <div class="d-flex gap-2 flex-wrap mb-2">
-                        <button type="button" class="btn btn-ghost btn-xs" id="copyClabeBtn">Copiar CLABE</button>
-                        <button type="button" class="btn btn-ghost btn-xs" id="copyTransferMsgBtn">Copiar mensaje</button>
+                    <div class="transfer-actions">
+                        <button type="button" class="tbtn" id="copyClabeBtn" aria-label="Copiar número de tarjeta">
+                            <span class="tbtn-ic">📋</span>
+                            <span class="tbtn-txt">Copiar tarjeta</span>
+                        </button>
+
+                        <button type="button" class="tbtn" id="copyTransferMsgBtn"
+                                aria-label="Copiar mensaje de transferencia">
+                            <span class="tbtn-ic">💬</span>
+                            <span class="tbtn-txt">Copiar mensaje</span>
+                        </button>
                     </div>
 
+
                     <div class="note mb-3">
-                        <strong>Concepto sugerido:</strong> “Reserva TransportApp” <span class="subtle">(tu folio se genera al finalizar)</span>.
+                        <strong>Concepto sugerido:</strong> “Servicio de transporte” <span class="subtle">(tu folio se genera al finalizar)</span>.
                         <br>
                         Después, envíanos el comprobante por WhatsApp para confirmar.
                     </div>
 
                     <label class="form-label">Referencia / folio de transferencia (opcional)</label>
-                    <input id="transfer_ref" name="transfer_ref" class="form-control" placeholder="Ej: 123456 / SPEI / concepto" />
+                    <input id="transfer_ref" name="transfer_ref" class="form-control"
+                           placeholder="Ej: 123456 / SPEI / concepto"/>
                     <div class="form-text subtle">
                         Si ya hiciste la transferencia, pega aquí la referencia. Si no, puedes dejarlo vacío.
                     </div>
@@ -381,7 +496,7 @@
             <!-- ONLINE: aviso -->
             <div class="col-12 d-none" id="onlineWrap">
                 <div class="alert alert-info mb-0">
-                    <strong>Pago en línea:</strong> al confirmar la reserva te llevaremos al flujo de pago (o te enviaremos el link por WhatsApp).
+                    <strong>Pago en línea:</strong> al confirmar la reserva te llevaremos al pago del pasaje.
                 </div>
             </div>
 
@@ -389,7 +504,8 @@
             <!-- PAQUETERÍA: detalle (solo si es PACKAGE) -->
             <div class="col-12" id="packageWrap">
                 <label class="form-label">Detalle paquetería (opcional)</label>
-                <input id="package_details" name="package_details" class="form-control" placeholder="Ej: sobre, refacciones, etc." />
+                <input id="package_details" name="package_details" class="form-control"
+                       placeholder="Ej: sobre, refacciones, etc."/>
             </div>
 
             <!-- Horarios pill (divididos: mañana/tarde) -->
@@ -432,6 +548,9 @@
     </div>
 
 </main>
+
+<%- include('partials/toast') %>
+<%- include('partials/footer') %>
 
 <script>
     const tripDate = document.getElementById("trip_date");
@@ -483,28 +602,28 @@
     const copyTransferMsgBtn = document.getElementById("copyTransferMsgBtn");
     const bankClabeEl = document.getElementById("bankClabe");
 
+    const formEl = document.getElementById("reserveForm");
 
-
-    function todayISO(){
-        return new Date().toLocaleDateString("en-CA", { timeZone: "America/Monterrey" }); // YYYY-MM-DD
+    function todayISO() {
+        return new Date().toLocaleDateString("en-CA", {timeZone: "America/Monterrey"}); // YYYY-MM-DD
     }
 
 
-    function toHHMM(t){
+    function toHHMM(t) {
         // remove seconds if present: "08:30:00" -> "08:30"
         const s = String(t || "").trim();
         const parts = s.split(":");
-        if (parts.length >= 2) return `${parts[0].padStart(2,"0")}:${parts[1].padStart(2,"0")}`;
+        if (parts.length >= 2) return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
         return s;
     }
 
-    function hourFromTime(t){
+    function hourFromTime(t) {
         const hhmm = toHHMM(t);
         const hh = Number((hhmm.split(":")[0] || "0"));
         return isNaN(hh) ? 0 : hh;
     }
 
-    function setSeats(n){
+    function setSeats(n) {
         const value = Math.max(1, Math.min(7, Number(n || 1)));
         seatsSel.value = String(value);
         seatsText.textContent = String(value);
@@ -586,7 +705,7 @@
         }
     }
 
-    function clearSlotsUI(msg){
+    function clearSlotsUI(msg) {
         departTimeHidden.value = "";
         slotsLoading.textContent = msg || "Selecciona fecha y ruta para ver horarios.";
         sections.classList.add("d-none");
@@ -596,7 +715,7 @@
         afternoonSection.classList.remove("d-none");
     }
 
-    function setSelectedTime(hhmm){
+    function setSelectedTime(hhmm) {
         const value = toHHMM(hhmm);
         departTimeHidden.value = value;
 
@@ -605,13 +724,13 @@
         });
     }
 
-    function createPill({time, available, seatsNeeded}){
+    function createPill({time, available, seatsNeeded}) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "slot-pill";
         const hhmm = toHHMM(time);
         btn.dataset.time = hhmm;
-        btn.setAttribute("aria-selected","false");
+        btn.setAttribute("aria-selected", "false");
 
         // ✅ Only enforce "full" for PASSENGER. PACKAGE can still be selected.
         if (seatsNeeded > 0) {
@@ -634,17 +753,17 @@
     }
 
 
-    function renderSlotsGrouped(results, seatsNeeded){
+    function renderSlotsGrouped(results, seatsNeeded) {
         // I treat seatsNeeded>0 as "passenger capacity required".
         const requiresCapacity = seatsNeeded > 0;
 
         const items = (results || [])
-            .map(x => ({ time: toHHMM(x.time), available: Number(x.available || 0) }))
+            .map(x => ({time: toHHMM(x.time), available: Number(x.available || 0)}))
             // I only filter by capacity for passengers. For packages I show all times.
             .filter(x => requiresCapacity ? (x.available >= seatsNeeded) : true)
-            .sort((a,b) => a.time.localeCompare(b.time));
+            .sort((a, b) => a.time.localeCompare(b.time));
 
-        if (!items.length){
+        if (!items.length) {
             clearSlotsUI(requiresCapacity
                 ? "No hay horarios con cupo suficiente para tu selección."
                 : "No hay horarios para esta fecha/ruta.");
@@ -660,8 +779,8 @@
         if (!morning.length) morningSection.classList.add("d-none"); else morningSection.classList.remove("d-none");
         if (!afternoon.length) afternoonSection.classList.add("d-none"); else afternoonSection.classList.remove("d-none");
 
-        morning.forEach(x => morningSlots.appendChild(createPill({ ...x, seatsNeeded })));
-        afternoon.forEach(x => afternoonSlots.appendChild(createPill({ ...x, seatsNeeded })));
+        morning.forEach(x => morningSlots.appendChild(createPill({...x, seatsNeeded})));
+        afternoon.forEach(x => afternoonSlots.appendChild(createPill({...x, seatsNeeded})));
 
         sections.classList.remove("d-none");
         slotsLoading.textContent = "Selecciona un horario:";
@@ -673,7 +792,7 @@
         const date = tripDate.value;
         const dir = directionInput.value;
 
-        if (!date || !dir){
+        if (!date || !dir) {
             clearSlotsUI("Selecciona fecha y ruta para ver horarios.");
             return;
         }
@@ -697,15 +816,15 @@
         }
     }
 
-    function formatMXN(n){
+    function formatMXN(n) {
         const v = Number(n || 0);
         return `$${v.toFixed(2)} MXN`;
     }
 
-    function buildTransferMessage(){
+    function buildTransferMessage() {
         const bank = document.getElementById("bankName")?.textContent?.trim() || "";
         const owner = document.getElementById("bankOwner")?.textContent?.trim() || "";
-        const clabe = document.getElementById("bankClabe")?.textContent?.trim() || "";
+        const card = document.getElementById("bankClabe")?.textContent?.trim() || "";
 
         const dir = (directionInput.value === "VIC_TO_LLE") ? "Victoria - Llera" : "Llera - Victoria";
         const date = tripDate.value || "-";
@@ -720,7 +839,7 @@
             "--------------------------------------",
             `Banco: ${bank}`,
             `Beneficiario: ${owner}`,
-            `CLABE: ${clabe}`,
+            `Número de tarjeta: ${card}`,
             "",
             "Datos de mi reserva",
             "-------------------",
@@ -735,30 +854,29 @@
     }
 
     copyClabeBtn?.addEventListener("click", async () => {
-        try{
-            const clabe = bankClabeEl?.textContent?.trim() || "";
-            await navigator.clipboard.writeText(clabe);
-            const old = copyClabeBtn.textContent;
-            copyClabeBtn.textContent = "Copiado";
-            setTimeout(() => copyClabeBtn.textContent = old, 1200);
+        try {
+            const rawCard = bankClabeEl?.textContent?.trim() || "";
+            const cardNoSpaces = rawCard.replace(/\s+/g, "").replace(/-/g, "");
+            await navigator.clipboard.writeText(cardNoSpaces);
+
+            notify("Número de tarjeta copiado", {variant: "success"});
         } catch {
-            alert("No pude copiar la CLABE. Selecciónala manualmente.");
+            notify("No pude copiar el número. Selecciónalo manualmente.", {variant: "danger", delay: 2500});
         }
     });
+
 
     copyTransferMsgBtn?.addEventListener("click", async () => {
-        try{
+        try {
             await navigator.clipboard.writeText(buildTransferMessage());
-            const old = copyTransferMsgBtn.textContent;
-            copyTransferMsgBtn.textContent = "Copiado";
-            setTimeout(() => copyTransferMsgBtn.textContent = old, 1200);
+            notify("Mensaje copiado", {variant: "success"});
         } catch {
-            alert("No pude copiar el mensaje. Intenta de nuevo.");
+            notify("No pude copiar el mensaje. Intenta de nuevo.", {variant: "danger", delay: 2500});
         }
     });
 
 
-    function updatePriceUI(){
+    function updatePriceUI() {
         // I calculate the price on the UI for clarity, but the backend is the source of truth.
         const isPassenger = typeSel.value === "PASSENGER";
         const seats = Number(seatsSel.value || 1);
@@ -768,7 +886,7 @@
 
         priceTotal.textContent = formatMXN(total);
 
-        if (isPassenger){
+        if (isPassenger) {
             priceBreakdown.textContent = `${formatMXN(unit)} x ${seats} pasajero(s)`;
             priceHint.textContent = "Pasaje";
         } else {
@@ -777,10 +895,76 @@
         }
     }
 
+    function fieldLabel(el){
+        // 1) label[for=id]
+        if (el.id) {
+            const lf = formEl.querySelector(`label[for="${el.id}"]`);
+            if (lf) return lf.textContent.trim();
+        }
+        // 2) label dentro del mismo col-*
+        const wrap = el.closest('[class*="col-"]');
+        const l2 = wrap?.querySelector("label.form-label");
+        if (l2) return l2.textContent.trim();
+
+        // 3) fallback
+        return el.placeholder || el.name || "este campo";
+    }
+
+    function messageForInvalid(el){
+        const name = fieldLabel(el);
+
+        if (el.id === "phone" && el.validity.patternMismatch) {
+            return `Revisa "${name}": deben ser 10 dígitos.`;
+        }
+        if (el.validity.valueMissing) return `Completa "${name}".`;
+        if (el.validity.patternMismatch) return `Revisa "${name}" (formato inválido).`;
+        if (el.validity.typeMismatch) return `Revisa "${name}".`;
+        return `Revisa "${name}".`;
+    }
+
+    function markInvalid(el){
+        el.classList.add("is-invalid");
+    }
+    function clearInvalid(el){
+        el.classList.remove("is-invalid");
+    }
+
+    // Limpio el rojo cuando el usuario corrige
+    formEl.addEventListener("input", (e) => clearInvalid(e.target), true);
+    formEl.addEventListener("change", (e) => clearInvalid(e.target), true);
+
+    formEl.addEventListener("submit", (e) => {
+        // 1) Validación HTML5 (required/pattern/type/etc) -> toast
+        const invalid = formEl.querySelector(":invalid");
+        if (invalid) {
+            e.preventDefault();
+            [...formEl.querySelectorAll(":invalid")].forEach(markInvalid);
+
+            notify(messageForInvalid(invalid), { variant: "warning", delay: 2600 });
+
+            invalid.focus({ preventScroll: true });
+            invalid.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+        }
+
+        // 2) Tu validación extra de horario (no es input visible, así que va aparte)
+        if (!departTimeHidden.value) {
+            e.preventDefault();
+            notify("Selecciona un horario disponible antes de confirmar.", { variant: "warning", delay: 2500 });
+            document.getElementById("sections")?.closest(".slots-wrap")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+        }
+    });
 
     // listeners
-    fromCity.addEventListener("change", () => { syncDirection(); loadAvailability(); });
-    toCity.addEventListener("change", () => { syncDirection(); loadAvailability(); });
+    fromCity.addEventListener("change", () => {
+        syncDirection();
+        loadAvailability();
+    });
+    toCity.addEventListener("change", () => {
+        syncDirection();
+        loadAvailability();
+    });
 
     tripDate.addEventListener("change", loadAvailability);
 
@@ -802,13 +986,6 @@
         loadAvailability();
     });
 
-    document.getElementById("reserveForm")?.addEventListener("submit", (e) => {
-        if (!departTimeHidden.value) {
-            e.preventDefault();
-            alert("Selecciona un horario disponible antes de confirmar.");
-        }
-    });
-
 
     paymentMethod.addEventListener("change", updateUIByPayment);
 
@@ -827,6 +1004,7 @@
     loadAvailability();
 </script>
 
-<script src="/js/theme.js"></script>
+
 </body>
 </html>
+
