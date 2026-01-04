@@ -108,7 +108,7 @@
         <div class="top">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div>
-                    <div class="pill">✅ Reserva creada</div>
+                    <div class="pill">Reserva creada</div>
                     <h1 class="h3 title mt-2">Listo</h1>
                     <div class="meta mt-1">Tu folio es:</div>
                     <div class="mono mt-1" id="folioText"><%= folio %></div>
@@ -125,37 +125,13 @@
             <ul class="kv mb-3">
                 <li>
                     <span class="k">Ruta</span>
-                    <span class="v" id="routeText"><%= r.direction === "VIC_TO_LLE" ? "Victoria - Llera" : "Llera - Victoria" %></span>
+                    <span class="v"><%= r.direction === "VIC_TO_LLE" ? "Victoria - Llera" : "Llera - Victoria" %></span>
                 </li>
-                <li><span class="k">Fecha</span><span class="v" id="dateText"><%= r.trip_date %></span></li>
-                <li><span class="k">Hora</span><span class="v" id="timeText"><%= r.depart_time %></span></li>
-                <li><span class="k">Contacto</span><span class="v" id="nameText"><%= r.customer_name %></span></li>
+                <li><span class="k">Fecha</span><span class="v"><%= r.trip_date %></span></li>
+                <li><span class="k">Hora</span><span class="v"><%= r.depart_time %></span></li>
+                <li><span class="k">Contacto</span><span class="v"><%= r.customer_name %></span></li>
                 <li><span class="k">Teléfono</span><span class="v" id="phoneText"><%= r.phone %></span></li>
-
-                <!-- Opcionales: Tipo / Pasajeros / Detalles -->
-                <% const _type = (r.reservation_type || r.type || r.booking_type || "").toString(); %>
-                <% const _pax = (r.passengers || r.pax || "").toString(); %>
-                <% const _pkg = (r.package_details || r.package_info || r.details || "").toString(); %>
-
-                <% if (_type) { %>
-                    <li><span class="k">Tipo</span><span class="v" id="typeText"><%= _type %></span></li>
-                <% } else { %>
-                    <li><span class="k">Tipo</span><span class="v" id="typeText">No especificado</span></li>
-                <% } %>
-
-                <% if (_pax) { %>
-                    <li><span class="k">Pasajeros</span><span class="v" id="paxText"><%= _pax %></span></li>
-                <% } else { %>
-                    <li><span class="k">Pasajeros</span><span class="v" id="paxText"></span></li>
-                <% } %>
-
-                <% if (_pkg) { %>
-                    <li><span class="k">Paquetería</span><span class="v" id="pkgText"><%= _pkg %></span></li>
-                <% } else { %>
-                    <li><span class="k">Paquetería</span><span class="v" id="pkgText"></span></li>
-                <% } %>
-
-                <li><span class="k">Estado</span><span class="v" id="statusText">Pendiente de confirmación</span></li>
+                <li><span class="k">Estado</span><span class="v">Pendiente de confirmación</span></li>
             </ul>
 
             <div class="note">
@@ -173,76 +149,76 @@
 
 <script src="/js/theme.js"></script>
 
-<!-- ✅ JSON seguro para evitar el error "Expression expected" en el editor -->
-<script type="application/json" id="reservationJson"><%- JSON.stringify({
-        folio,
+<!-- Datos del servidor en JSON para evitar errores de "Expression expected" en el editor -->
+<script type="application/json" id="reservationData">
+<%- JSON.stringify({
+        folio: folio,
         direction: r.direction,
         trip_date: r.trip_date,
         depart_time: r.depart_time,
         customer_name: r.customer_name,
         phone: r.phone,
-        reservation_type: r.reservation_type || r.type || r.booking_type || "",
-        passengers: r.passengers || r.pax || "",
-        package_details: r.package_details || r.package_info || r.details || ""
-    }).replace(/</g, "\\u003c") %></script>
+
+        // Ajusta si tus campos se llaman distinto:
+        reservation_type: r.reservation_type || r.type || r.booking_type || r.service_type || "",
+        passengers: r.passengers || r.pax || r.num_passengers || r.seats || "",
+        package_details: r.package_details || r.package_info || r.details || r.notes || ""
+    }) %>
+</script>
 
 <script>
     const copyBtn = document.getElementById('copyBtn');
     const waBtn = document.getElementById('waBtn');
 
-    // Número del admin/servicio (a quien le llega el WhatsApp)
+    // Numero del admin/servicio (a quien le llega el WhatsApp)
     const adminWa = "8344756376";
 
     function digitsOnly(s){ return String(s || '').replace(/\D/g,''); }
 
-    // Datos (desde el JSON del servidor)
-    const data = JSON.parse(document.getElementById("reservationJson")?.textContent || "{}");
+    // Parsear datos del servidor
+    let data = {};
+    try {
+        const raw = document.getElementById('reservationData')?.textContent || "{}";
+        data = JSON.parse(raw);
+    } catch {
+        data = {};
+    }
 
     function niceRoute(dir){
-        return dir === "VIC_TO_LLE" ? "Victoria → Llera" : "Llera → Victoria";
+        return dir === "VIC_TO_LLE" ? "Victoria a Llera" : "Llera a Victoria";
     }
 
     function niceType(t){
         const x = String(t || '').toLowerCase();
-        if (x.includes('paq') || x.includes('pack')) return 'Paquetería';
+        if (x.includes('paq') || x.includes('pack')) return 'Paqueteria';
         if (x.includes('pas')) return 'Pasaje';
         return t ? t : 'No especificado';
     }
 
     const typeLabel = niceType(data.reservation_type);
     const isPackage = typeLabel.toLowerCase().includes("paqu");
+    const isPassenger = typeLabel.toLowerCase().includes("pas");
 
-    const lines = [
-        "✅ *Nueva reserva*",
-        "",
-        `📌 *Folio:* ${data.folio || "—"}`,
-        `👤 *Nombre:* ${data.customer_name || "—"}`,
-        `📞 *Teléfono:* ${data.phone || "—"}`,
-        `🧭 *Ruta:* ${niceRoute(data.direction)}`,
-        `📅 *Fecha:* ${data.trip_date || "—"}`,
-        `🕒 *Hora:* ${data.depart_time || "—"}`,
-        `🎫 *Tipo:* ${typeLabel}`
-    ];
-
-    // Pasajeros (solo si aplica)
     const pax = Number(String(data.passengers || "").trim());
-    if (!Number.isNaN(pax) && pax > 0 && typeLabel.toLowerCase().includes("pas")) {
-        lines.push(`👥 *Pasajeros:* ${pax}`);
-    }
+    const paxValid = !Number.isNaN(pax) && pax > 0;
 
-    // Estado fijo
-    lines.push(`⏳ *Estado:* Pendiente de confirmación`);
-
-    // Paquetería: detalles
-    if (isPackage) {
-        lines.push("");
-        lines.push("📦 *Detalles de paquetería:*");
-        lines.push(data.package_details ? String(data.package_details) : "—");
-    }
-
-    // Link al sitio (útil)
-    lines.push("");
-    lines.push("🌐 " + window.location.origin);
+    // Mensaje como cliente, sin emojis
+    const lines = [
+        "Hola, acabo de realizar una reserva y me gustaría que me ayuden a confirmarla.",
+        "",
+        `Folio: ${data.folio || "-"}`,
+        `Nombre: ${data.customer_name || "-"}`,
+        `Telefono: ${data.phone || "-"}`,
+        `Tipo: ${typeLabel}`,
+        `Ruta: ${niceRoute(data.direction)}`,
+        `Fecha: ${data.trip_date || "-"}`,
+        `Hora: ${data.depart_time || "-"}`,
+        (isPassenger && paxValid) ? `Pasajeros: ${pax}` : null,
+        "Estado: Pendiente de confirmacion",
+        isPackage ? "" : null,
+        isPackage ? "Detalles de paqueteria:" : null,
+        isPackage ? (data.package_details ? String(data.package_details) : "-") : null
+    ].filter(Boolean);
 
     const msg = lines.join("\n");
 
@@ -260,7 +236,7 @@
         try{
             await navigator.clipboard.writeText(String(data.folio || ''));
             const old = copyBtn.textContent;
-            copyBtn.textContent = 'Copiado ✅';
+            copyBtn.textContent = 'Copiado';
             setTimeout(() => copyBtn.textContent = old, 1200);
         } catch {
             alert('No pude copiar. Selecciona el folio manualmente.');
