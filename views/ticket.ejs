@@ -5,6 +5,9 @@
     <title>Ticket</title>
 
     <style>
+        /* =========================
+           Pantalla (tu diseño actual)
+           ========================= */
         .ticket-card{
             background: var(--card);
             border: 1px solid var(--border);
@@ -58,9 +61,7 @@
             border-radius:18px;
             padding:14px;
             display:inline-block;
-
-            /* overlay icon */
-            position: relative;
+            position: relative; /* overlay icon */
         }
 
         /* Auto encima del QR (no rompe el QR) */
@@ -117,6 +118,198 @@
             text-overflow:ellipsis;
             white-space:nowrap;
         }
+
+        /* =========================
+           PRINT: Xprinter 58mm (diseño para ancho imprimible real)
+           - Página: 58mm
+           - Contenido: 48mm (típico 384 dots)
+           - Casi sin grises (negro para legibilidad)
+           ========================= */
+        :root{
+            --pageW: 58mm;     /* ancho del rollo */
+            --printW: 48mm;    /* ancho imprimible real */
+            --pad: 1.8mm;      /* padding interno */
+        }
+
+        @media print{
+            @page{
+                size: 58mm;
+                margin: 0;
+            }
+
+            *{
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            html, body{
+                width: var(--pageW) !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                color: #000 !important;
+
+                /* ✅ MÁS GRANDE */
+                font-size: 16px !important;
+                line-height: 1.18 !important;
+            }
+
+            /* Ocultar UI de pantalla */
+            nav.navbar,
+            #themeToggle,
+            .btn,
+            .theme-btn,
+            #copyBtn{
+                display: none !important;
+            }
+
+            main.container{
+                width: var(--pageW) !important;
+                max-width: var(--pageW) !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* ✅ Haz el contenido más ancho (prueba 52mm).
+               Si llega a recortar, baja a 50mm. */
+            .ticket-card{
+                width: 52mm !important;
+                max-width: 52mm !important;
+                margin: 0 auto !important;
+
+                border: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                background: #fff !important;
+                overflow: visible !important;
+            }
+
+            .ticket-top,
+            .ticket-body{
+                padding: 2mm !important;
+                background: transparent !important;
+                border: 0 !important;
+            }
+
+            /* Header en columna */
+            .ticket-top .d-flex{
+                display: block !important;
+            }
+
+            /* ✅ pill más grande */
+            .pill{
+                font-size: 14px !important;
+                font-weight: 900 !important;
+                color: #000 !important;
+                background: transparent !important;
+                border: 2px solid #000 !important;
+                padding: 2mm 3mm !important;
+                margin-bottom: 2.5mm !important;
+            }
+
+            /* ✅ título gigante */
+            .title{
+                font-size: 22px !important;
+                font-weight: 950 !important;
+                margin: 0 0 1.5mm !important;
+                color: #000 !important;
+                letter-spacing: -.01em !important;
+            }
+
+            /* ✅ meta en negro y grande */
+            .meta{
+                font-size: 14px !important;
+                color: #000 !important;
+                opacity: 1 !important;
+                font-weight: 800 !important;
+            }
+
+            /* 1 columna */
+            .ticket-body .row.g-4{
+                display: block !important;
+                margin: 0 !important;
+            }
+            .ticket-body [class*="col-"]{
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+
+            /* ✅ KV más grande */
+            .kv{
+                gap: 2.2mm !important;
+                margin: 2.5mm 0 0 !important;
+            }
+            .kv li{
+                padding: 2.2mm 2.4mm !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+                border: 0 !important;
+                border-bottom: 2px dashed #000 !important;
+            }
+            .kv .k{
+                color: #000 !important;
+                font-weight: 900 !important;
+                font-size: 14px !important;
+            }
+            .kv .v{
+                color: #000 !important;
+                font-weight: 900 !important;
+                font-size: 14px !important;
+                text-align: right !important;
+
+                /* ✅ más ancho para el valor */
+                max-width: 30mm !important;
+                word-break: break-word !important;
+            }
+
+            /* ✅ QR más grande */
+            .qr-wrap{
+                margin-top: 3mm !important;
+                padding: 2mm !important;
+                border-radius: 0 !important;
+                border: 2px solid #000 !important;
+                background: transparent !important;
+            }
+            .qr-wrap img{
+                /* usa casi todo el ancho del ticket */
+                width: 46mm !important;
+                max-width: 46mm !important;
+                height: auto !important;
+                display: block !important;
+                margin: 0 auto !important;
+            }
+
+            .qr-badge{
+                width: 10mm !important;
+                height: 10mm !important;
+                right: 2mm !important;
+                bottom: 2mm !important;
+                border-radius: 0 !important;
+                font-size: 16px !important;
+                box-shadow: none !important;
+                background: #fff !important;
+                border: 2px solid #000 !important;
+            }
+
+            /* Link: legible */
+            .url-box{
+                margin-top: 3mm !important;
+                padding: 0 !important;
+                border: 0 !important;
+                background: transparent !important;
+                display: block !important;
+            }
+            .mono{
+                color: #000 !important;
+                font-size: 12.5px !important;
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: unset !important;
+                word-break: break-word !important;
+            }
+        }
+
     </style>
 </head>
 
@@ -137,7 +330,6 @@
 </nav>
 
 <main class="container py-4">
-
     <div class="ticket-card">
         <div class="ticket-top">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
@@ -198,7 +390,6 @@
             </div>
         </div>
     </div>
-
 </main>
 
 <script src="/js/theme.js"></script>
