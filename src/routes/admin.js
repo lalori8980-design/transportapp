@@ -294,4 +294,148 @@ router.post("/reservation/:reservationId/cancel", requireAdmin, requireDb, async
     }
 });
 
+// ÚLTIMOS REGISTROS (tabla + buscador + paginación)
+router.get("/recent", requireAdmin, requireDb, async (req, res) => {
+    const qRaw = String(req.query.q || "").trim();
+    const q = qRaw ? qRaw : null;
+
+    // Pagination params
+    const pageSize = Math.max(10, Math.min(200, Number(req.query.pageSize || 25)));
+    const pageReq = Math.max(1, Number(req.query.page || 1));
+
+    // Folio: RES-YYYYMMDD-000001 (trip_date + reservation id)
+    const folioExpr = `CONCAT('RES-', DATE_FORMAT(t.trip_date,'%Y%m%d'), '-', LPAD(r.id,6,'0'))`;
+
+    // Phone normalization inside SQL (remove common separators)
+    const phoneDigitsExpr =
+        `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(r.phone,''),' ',''),'-',''),'(',''),')',''),'+','')`;
+
+    const where = [];
+    const params = [];
+
+    if (q) {
+        const like = `%${q}%`;
+        const or = [];
+
+        // folio contains
+        or.push(`${folioExpr} LIKE ?`);
+        params.push(like);
+
+        // ticket contains (subquery so it works even if not joined)
+        or.push(`EXISTS (
+            SELECT 1
+            FROM transporte_tickets tk2
+            WHERE tk2.reservation_id = r.id
+              AND tk2.code LIKE ?
+        )`);
+        params.push(like);
+
+        // raw phone contains
+        or.push(`r.phone LIKE ?`);
+        params.push(like);
+
+        // digits-only phone contains
+        const digits = q.replace(/\D/g, "");
+        if (digits.length >= 3) {
+            or.push(`${phoneDigitsExpr} LIKE ?`);
+            params.push(`%${digits}%`);
+        }
+
+        // reservation id exact if numeric
+        if (/^\d+$/.test(q)) {
+            or.push(`r.id = ?`);
+            params.push(Number(q));
+        }
+
+        where.push(`(${or.join(" OR ")})`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    // Count total for pagination
+    const countSql = `
+        SELECT COUNT(*) AS total
+        FROM transporte_reservations r
+        JOIN transporte_trips t ON t.id = r.trip_id
+        JOIN transporte_departure_templates dt ON dt.id = t.template_id
+        ${whereSql}
+    `;
+
+    const [[countRow]] = await pool.query(countSql, params);
+    const total = Number(countRow?.total || 0);
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(pageReq, totalPages);
+    const offset = (page - 1) * pageSize;
+
+    // Data query (include everything the EJS uses)
+    const dataSql = `
+        SELECT
+            r.id,
+            r.type,
+            r.status,
+            r.customer_name,
+            r.phone,
+            r.payment_method,
+            r.transfer_ref,
+            r.seats,
+            r.package_details,
+            r.amount_total_mxn,
+            r.created_at,
+
+            t.id AS trip_id,
+            t.trip_date,
+            dt.direction,
+            dt.depart_time,
+
+            (${folioExpr}) AS folio,
+
+            (SELECT tk.code
+             FROM transporte_tickets tk
+             WHERE tk.reservation_id = r.id
+             LIMIT 1) AS ticket_code,
+
+            COALESCE(rp.passenger_names, '') AS passenger_names,
+            COALESCE(rp.passenger_count, 0) AS passenger_count
+
+        FROM transporte_reservations r
+        JOIN transporte_trips t ON t.id = r.trip_id
+        JOIN transporte_departure_templates dt ON dt.id = t.template_id
+        LEFT JOIN (
+            SELECT
+                reservation_id,
+                GROUP_CONCAT(passenger_name ORDER BY id SEPARATOR ', ') AS passenger_names,
+                COUNT(*) AS passenger_count
+            FROM transporte_reservation_passengers
+            GROUP BY reservation_id
+        ) rp ON rp.reservation_id = r.id
+
+        ${whereSql}
+        ORDER BY r.created_at DESC
+        LIMIT ? OFFSET ?
+    `;
+
+    const [recentRows] = await pool.query(dataSql, [...params, pageSize, offset]);
+
+    const from = total === 0 ? 0 : offset + 1;
+    const to = total === 0 ? 0 : Math.min(offset + recentRows.length, total);
+
+    return res.render("admin_recent", {
+        q: qRaw,
+        recentRows,
+        directionLabel,
+
+        // pagination vars used in EJS
+        page,
+        pageSize,
+        total,
+        totalPages,
+
+        // your EJS uses `pages`, `from`, `to`
+        pages: totalPages,
+        from,
+        to,
+    });
+});
+
 module.exports = router;

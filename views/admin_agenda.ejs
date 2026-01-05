@@ -114,6 +114,7 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2 align-items-center">
+
                 <form id="agendaForm" class="d-flex flex-wrap gap-2 align-items-center" method="GET" action="/admin/agenda">
                     <input id="agendaDate" type="date" name="date" class="form-control" value="<%= date %>">
                     <input type="hidden" name="onlyWithTrip" id="onlyWithTripInput" value="0">
@@ -122,6 +123,11 @@
                     <a id="onlyToggleBtn" class="btn btn-ghost px-3 fw-semibold"
                        href="/admin/agenda?date=<%= encodeURIComponent(date || '') %>&onlyWithTrip=1">
                         Solo con viaje
+                    </a>
+                    <!-- ✅ “Tab” a otra página -->
+                    <a class="btn btn-ghost px-3 fw-semibold"
+                       href="/admin/recent">
+                        Últimos registros
                     </a>
                 </form>
             </div>
