@@ -31,10 +31,11 @@ const session = require("express-session");
 const { pool, hasDb } = require("./src/db");
 const publicRoutes = require("./src/routes/public");
 const adminRoutes = require("./src/routes/admin");
+const ticketRoutes = require("./src/routes/ticket");
 
 const app = express();
 
-// HTTPS (Hostinger)
+// I trust the proxy so req.protocol is correct behind hosting/proxy (Hostinger)
 app.set("trust proxy", 1);
 
 // Views
@@ -48,7 +49,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Sessions (before /admin)
+// Sessions (before routes that might need req.session)
 app.use(
     session({
         secret: process.env.SESSION_SECRET || "dev_secret_change_me",
@@ -64,7 +65,18 @@ app.use(
     })
 );
 
+// I expose baseUrl/fullUrl to every EJS via res.locals
+app.use((req, res, next) => {
+    const baseUrl = (process.env.BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/+$/, "");
+    res.locals.baseUrl = baseUrl;
+    res.locals.fullUrl = baseUrl + req.originalUrl.split("?")[0];
+    next();
+});
+
 // Routes
+// I keep ticket routes early so /ticket/... doesn't get shadowed by other routers.
+app.use(ticketRoutes);
+
 app.use("/", publicRoutes);
 app.use("/admin", adminRoutes);
 
@@ -146,14 +158,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
 });
-
-// I trust the proxy so req.protocol is correct behind hosting/proxy
-app.set("trust proxy", 1);
-
-app.use((req, res, next) => {
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
-    res.locals.baseUrl = baseUrl;
-    res.locals.fullUrl = baseUrl + req.originalUrl.split("?")[0];
-    next();
-});
-

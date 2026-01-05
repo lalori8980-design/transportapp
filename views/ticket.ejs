@@ -124,7 +124,7 @@
        ========================= */
         @media print{
             @page{
-                size: 58mm 210mm;   /* ✅ ancho x alto (fijo) */
+                size: 58mm 210mm;  /* el rollo es 58mm */
                 margin: 0;
             }
 
@@ -136,19 +136,17 @@
             }
 
             html, body{
-                width: 58mm !important;
-                height: 210mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #fff !important;
                 color: #000 !important;
 
-                /* ✅ MÁS GRANDE */
-                font-size: 17px !important;
-                line-height: 1.15 !important;
+                /* ✅ subo tamaño base */
+                font-size: 20px !important;
+                line-height: 1.12 !important;
             }
 
-            /* Ocultar UI de pantalla */
+            /* Ocultar UI */
             nav.navbar,
             #themeToggle,
             .btn,
@@ -159,53 +157,46 @@
 
             /* Quitar container bootstrap */
             main.container{
-                width: 58mm !important;
-                max-width: 58mm !important;
-                height: 210mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
-            }
-
-            /* El “papel” completo */
-            .ticket-card{
                 width: 58mm !important;
                 max-width: 58mm !important;
-                height: 210mm !important;
+            }
+
+            /* ✅ Clave: usar el ancho efectivo REAL (48mm) */
+            .ticket-card{
+                width: 48mm !important;
+                max-width: 48mm !important;
                 margin: 0 !important;
 
                 border: 0 !important;
                 border-radius: 0 !important;
                 background: #fff !important;
-                overflow: hidden !important; /* para que no se salga del 210mm */
+                overflow: hidden !important;
             }
 
-            /* Header + body como recibo */
+            /* “margen” lateral para centrar en rollo 58mm */
             .ticket-top,
             .ticket-body{
-                padding: 2mm 2mm !important;
+                padding: 2mm !important;
                 border: 0 !important;
                 background: transparent !important;
             }
 
-            /* Header en una columna */
-            .ticket-top .d-flex{
-                display: block !important;
-            }
-
-            /* “Pill” estilo sello (negro) */
+            /* pill tipo sello */
             .pill{
                 display: inline-block !important;
-                font-size: 14px !important;
+                font-size: 15px !important;
                 font-weight: 900 !important;
                 color: #000 !important;
                 background: transparent !important;
                 border: 2px solid #000 !important;
                 border-radius: 0 !important;
-                padding: 2mm 2.5mm !important;
-                margin: 0 0 2mm 0 !important;
+                padding: 1.8mm 2.2mm !important;
+                margin: 0 0 1.6mm 0 !important;
             }
 
-            /* Folio grande */
+            /* folio grande */
             .title{
                 font-size: 24px !important;
                 font-weight: 950 !important;
@@ -214,15 +205,13 @@
                 letter-spacing: 0 !important;
             }
 
-            /* Meta en negro (sin gris) */
             .meta{
                 font-size: 14px !important;
-                font-weight: 800 !important;
+                font-weight: 900 !important;
                 color: #000 !important;
-                opacity: 1 !important;
             }
 
-            /* Layout: 1 columna */
+            /* Layout en 1 columna para evitar encogimientos */
             .ticket-body .row.g-4{
                 display: block !important;
                 margin: 0 !important;
@@ -233,7 +222,7 @@
                 padding: 0 !important;
             }
 
-            /* Lista KV tipo recibo */
+            /* KV estilo recibo */
             .kv{
                 margin: 2mm 0 0 0 !important;
                 gap: 0 !important;
@@ -242,13 +231,9 @@
                 border: 0 !important;
                 border-radius: 0 !important;
                 background: transparent !important;
-
-                /* separador de recibo */
                 border-bottom: 2px dashed #000 !important;
-
                 padding: 2mm 0 !important;
             }
-
             .kv .k{
                 color: #000 !important;
                 font-weight: 900 !important;
@@ -260,32 +245,32 @@
                 font-size: 14px !important;
                 text-align: right !important;
 
-                /* evita que se “coma” el ancho */
-                max-width: 32mm !important;
+                /* ✅ para 48mm: evita que se corte feo */
+                max-width: 26mm !important;
                 word-break: break-word !important;
             }
 
-            /* QR: grande y centrado (usa casi todo el ancho) */
+            /* ✅ QR mucho más grande dentro de 48mm */
             .qr-wrap{
                 margin-top: 3mm !important;
-                padding: 2mm !important;
+                padding: 1.8mm !important;
                 border: 2px solid #000 !important;
                 border-radius: 0 !important;
                 background: transparent !important;
             }
             .qr-wrap img{
-                width: 52mm !important;     /* ✅ grande en 58mm */
-                max-width: 52mm !important;
+                width: 44mm !important;   /* ✅ casi todo el ancho efectivo */
+                max-width: 44mm !important;
                 height: auto !important;
                 display: block !important;
                 margin: 0 auto !important;
             }
 
             .qr-badge{
-                width: 10mm !important;
-                height: 10mm !important;
-                right: 2mm !important;
-                bottom: 2mm !important;
+                width: 9mm !important;
+                height: 9mm !important;
+                right: 1.6mm !important;
+                bottom: 1.6mm !important;
                 border-radius: 0 !important;
                 font-size: 16px !important;
                 background: #fff !important;
@@ -293,7 +278,7 @@
                 box-shadow: none !important;
             }
 
-            /* Link: solo texto, negro y legible */
+            /* Link en negro y completo */
             .url-box{
                 margin-top: 3mm !important;
                 padding: 0 !important;
@@ -310,7 +295,6 @@
                 word-break: break-word !important;
             }
         }
-
 
     </style>
 </head>
@@ -343,8 +327,16 @@
 
                 <div class="d-flex gap-2">
                     <a class="btn btn-wine btn-xs" href="/ticket/<%= row.code %>/pdf">PDF</a>
+
+                    <a class="btn btn-ghost btn-xs"
+                       href="/ticket/<%= row.code %>/print"
+                       target="_blank" rel="noopener">
+                        Imprimir
+                    </a>
+
                     <a class="btn btn-ghost btn-xs" href="<%= returnUrl || '/' %>">Volver</a>
                 </div>
+
             </div>
         </div>
 

@@ -356,9 +356,9 @@ router.get("/recent", requireAdmin, requireDb, async (req, res) => {
     const countSql = `
         SELECT COUNT(*) AS total
         FROM transporte_reservations r
-        JOIN transporte_trips t ON t.id = r.trip_id
-        JOIN transporte_departure_templates dt ON dt.id = t.template_id
-        ${whereSql}
+                 JOIN transporte_trips t ON t.id = r.trip_id
+                 JOIN transporte_departure_templates dt ON dt.id = t.template_id
+            ${whereSql}
     `;
 
     const [[countRow]] = await pool.query(countSql, params);
@@ -393,26 +393,26 @@ router.get("/recent", requireAdmin, requireDb, async (req, res) => {
             (SELECT tk.code
              FROM transporte_tickets tk
              WHERE tk.reservation_id = r.id
-             LIMIT 1) AS ticket_code,
+                LIMIT 1) AS ticket_code,
 
             COALESCE(rp.passenger_names, '') AS passenger_names,
             COALESCE(rp.passenger_count, 0) AS passenger_count
 
         FROM transporte_reservations r
-        JOIN transporte_trips t ON t.id = r.trip_id
-        JOIN transporte_departure_templates dt ON dt.id = t.template_id
-        LEFT JOIN (
+            JOIN transporte_trips t ON t.id = r.trip_id
+            JOIN transporte_departure_templates dt ON dt.id = t.template_id
+            LEFT JOIN (
             SELECT
-                reservation_id,
-                GROUP_CONCAT(passenger_name ORDER BY id SEPARATOR ', ') AS passenger_names,
-                COUNT(*) AS passenger_count
+            reservation_id,
+            GROUP_CONCAT(passenger_name ORDER BY id SEPARATOR ', ') AS passenger_names,
+            COUNT(*) AS passenger_count
             FROM transporte_reservation_passengers
             GROUP BY reservation_id
-        ) rp ON rp.reservation_id = r.id
+            ) rp ON rp.reservation_id = r.id
 
-        ${whereSql}
+            ${whereSql}
         ORDER BY r.created_at DESC
-        LIMIT ? OFFSET ?
+            LIMIT ? OFFSET ?
     `;
 
     const [recentRows] = await pool.query(dataSql, [...params, pageSize, offset]);
