@@ -2,6 +2,7 @@
 <html lang="es" data-theme="light">
 <head>
     <%- include('partials/head') %>
+    <link href="/css/theme.css" rel="stylesheet">
     <title>Admin horarios</title>
 
     <style>
@@ -210,6 +211,158 @@
             border-color: color-mix(in srgb, var(--wine) 55%, var(--border));
             box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--wine) 18%, transparent);
         }
+
+        /* =========================================================
+   ✅ MOBILE UPGRADE (Admin horarios)
+========================================================= */
+        @media (max-width: 576px){
+
+            /* contenedor más compacto */
+            main.container.py-4{ padding-top: 14px !important; padding-bottom: 16px !important; }
+            .card-soft.p-4{ padding: 14px !important; }
+
+            /* toolbar: apila y ocupa todo el ancho */
+            .toolbar{
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .controls{
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            #dateWrap,
+            #dateWrap .form-control,
+            #direction,
+            .controls .form-select,
+            .controls .form-control{
+                width: 100%;
+            }
+
+            #loadBtn{
+                width: 100%;
+                border-radius: 14px;
+                padding: .6rem 1rem;
+                font-weight: 700;
+            }
+
+            /* tabs: una sola fila con scroll */
+            .tabs{
+                width: 100%;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: 8px;
+                padding-bottom: 6px;
+            }
+            .tabs::-webkit-scrollbar{ height: 6px; }
+            .tabs::-webkit-scrollbar-thumb{
+                background: color-mix(in srgb, var(--border) 70%, transparent);
+                border-radius: 999px;
+            }
+
+            .tabbtn{
+                flex: 0 0 auto;
+                white-space: nowrap;
+                padding: .5rem .85rem;
+                border-radius: 999px;
+            }
+
+            /* KPI + wrap */
+            .slots-wrap{ padding: 12px; }
+            .kpi .pill{
+                font-size: .88rem;
+                padding: .38rem .62rem;
+            }
+
+            /* ROW: de horizontal a vertical */
+            .slot-row{
+                display: block;
+                padding: 12px;
+                border-radius: 16px;
+            }
+
+            .slot-left{
+                min-width: auto;
+                width: 100%;
+                gap: 8px;
+            }
+
+            .pill{
+                font-size: .88rem;
+                padding: .38rem .62rem;
+            }
+
+            .mini{
+                font-size: .82rem;
+                padding: .18rem .5rem;
+            }
+
+            .notes{
+                width: 100%;
+                min-width: 0;
+                max-width: none;
+                margin-top: 10px;
+            }
+
+            .notes input{
+                padding: .65rem .75rem;
+                border-radius: 14px;
+            }
+
+            /* acciones en grid (2 columnas) */
+            .actions{
+                width: 100%;
+                min-width: 0;
+                margin-top: 10px;
+
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                justify-content: initial;
+                align-items: center;
+            }
+
+            .actions .switch{
+                width: 100%;
+                justify-content: space-between;
+                padding: .45rem .6rem;
+                border: 1px dashed color-mix(in srgb, var(--border) 75%, transparent);
+                border-radius: 14px;
+                background: color-mix(in srgb, var(--card) 92%, transparent);
+            }
+
+            .actions .switch input{
+                width: 44px;
+                height: 24px;
+                margin: 0;
+            }
+
+            .btn-mini{
+                width: 100%;
+                justify-content: center;
+                padding: .55rem .85rem;
+            }
+
+            /* row-form (CRUD add/edit) también apilado */
+            .row-form{
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .row-form .field{ min-width: 0; }
+            .row-form button.btn.btn-wine{ width: 100%; border-radius: 14px; }
+
+            /* grupos por fecha más “ligeros” */
+            .group-title{
+                gap: 8px;
+            }
+        }
+
     </style>
 </head>
 
