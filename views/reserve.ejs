@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="es" data-theme="light">
-
 <head>
     <%- include('partials/head') %>
     <title>Reservar</title>
@@ -11,7 +10,6 @@
            ========================= */
 
         .form-label { font-weight: 600; }
-
         .help { color: var(--muted); font-size: .9rem; }
 
         /* Stepper estilo "lista desplegable" (form-select) pero con + / - */
@@ -259,6 +257,11 @@
 
         .is-invalid + .invalid-feedback{ display: block; }
     </style>
+
+    <!-- ✅ Inyecto pricing sin romper el JS del editor -->
+    <script id="pricingJson" type="application/json"><%- JSON.stringify(
+                (typeof pricing !== "undefined" && pricing) ? pricing : { passenger_price_mxn: 120, package_price_mxn: 120 }
+        ) %></script>
 </head>
 
 <body>
@@ -393,7 +396,7 @@
                 <div class="slots-wrap">
                     <div class="slots-head">
                         <p class="slots-title mb-0">Total a pagar</p>
-                        <div class="slots-sub" id="priceHint">—</div>
+                        <div class="slots-sub" id="priceHint">Cargando precio…</div>
                     </div>
 
                     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -528,7 +531,6 @@
 
     const paymentMethod = document.getElementById("payment_method");
     const transferWrap = document.getElementById("transferWrap");
-    const transferRef = document.getElementById("transfer_ref");
     const onlineWrap = document.getElementById("onlineWrap");
 
     const packageWrap = document.getElementById("packageWrap");
@@ -548,16 +550,54 @@
     const priceBreakdown = document.getElementById("priceBreakdown");
     const priceHint = document.getElementById("priceHint");
 
-    const PRICE_MXN = 120;
-
     const copyClabeBtn = document.getElementById("copyClabeBtn");
     const copyTransferMsgBtn = document.getElementById("copyTransferMsgBtn");
     const bankClabeEl = document.getElementById("bankClabe");
 
     const formEl = document.getElementById("reserveForm");
 
+    // ✅ pricing inicial desde server (sin romper el JS del editor)
+    function parsePricingFromServer(){
+        try{
+            const el = document.getElementById("pricingJson");
+            const raw = el ? el.textContent : "{}";
+            const obj = JSON.parse(raw || "{}");
+            return {
+                passenger_price_mxn: Number(obj?.passenger_price_mxn ?? 120),
+                package_price_mxn: Number(obj?.package_price_mxn ?? 120),
+            };
+        }catch{
+            return { passenger_price_mxn: 120, package_price_mxn: 120 };
+        }
+    }
+
+    let PRICING = parsePricingFromServer();
+    let PRICING_OK = true;
+
     function todayISO() {
-        return new Date().toLocaleDateString("en-CA", {timeZone: "America/Monterrey"});
+        return new Date().toLocaleDateString("en-CA", { timeZone: "America/Monterrey" });
+    }
+
+    async function loadPricing() {
+        // I refresh pricing from /pricing, but I already have a server-side default.
+        try {
+            const res = await fetch("/pricing", { headers: { "Accept": "application/json" } });
+            const data = await res.json();
+
+            if (data?.ok) {
+                PRICING = {
+                    passenger_price_mxn: Number(data.passenger_price_mxn ?? PRICING.passenger_price_mxn ?? 120),
+                    package_price_mxn: Number(data.package_price_mxn ?? PRICING.package_price_mxn ?? 120),
+                };
+                PRICING_OK = true;
+            } else {
+                PRICING_OK = false;
+            }
+        } catch {
+            PRICING_OK = false;
+        } finally {
+            updatePriceUI();
+        }
     }
 
     function toHHMM(t) {
@@ -574,7 +614,6 @@
     }
 
     function setSeats(n) {
-        /* ✅ máximo 6 */
         const value = Math.max(1, Math.min(6, Number(n || 1)));
         seatsSel.value = String(value);
         seatsText.textContent = String(value);
@@ -812,17 +851,20 @@
         const isPassenger = typeSel.value === "PASSENGER";
         const seats = Number(seatsSel.value || 1);
 
-        const unit = PRICE_MXN;
+        const unit = isPassenger
+            ? Number(PRICING.passenger_price_mxn || 0)
+            : Number(PRICING.package_price_mxn || 0);
+
         const total = isPassenger ? (unit * seats) : unit;
 
         priceTotal.textContent = formatMXN(total);
 
         if (isPassenger) {
             priceBreakdown.textContent = `${formatMXN(unit)} x ${seats} pasajero(s)`;
-            priceHint.textContent = "Pasaje";
+            priceHint.textContent = PRICING_OK ? "Pasaje (precio actual)" : "Pasaje (estimado)";
         } else {
             priceBreakdown.textContent = `${formatMXN(unit)} (costo fijo)`;
-            priceHint.textContent = "Paquetería";
+            priceHint.textContent = PRICING_OK ? "Paquetería (precio actual)" : "Paquetería (estimado)";
         }
     }
 
@@ -901,12 +943,19 @@
     syncDirection();
     updateUIByType();
     updateUIByPayment();
-    updatePriceUI();
 
     if (!tripDate.value) tripDate.value = todayISO();
 
     setSeats(1);
     renderPassengerInputs();
+
+    // ✅ pintar precio inmediato con lo que vino del server
+    updatePriceUI();
+
+    // ✅ refrescar pricing desde DB (por si cambió)
+    loadPricing();
+
+    // horarios
     loadAvailability();
 </script>
 

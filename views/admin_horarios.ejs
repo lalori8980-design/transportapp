@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+    <%- include('partials/head') %>
+    <title>Admin horarios</title>
+
+    <style>
+        .page-title{ letter-spacing:-.02em; font-weight:650; margin:0; }
+        .subtle{ color: var(--muted); }
+
+        .card-soft{
+            background: var(--card);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 18px;
+        }
+
+        .toolbar{
+            display:flex; gap:10px; flex-wrap:wrap;
+            align-items:end; justify-content:space-between;
+            margin-bottom: 14px;
+        }
+
+        .controls{
+            display:flex; gap:10px; flex-wrap:wrap;
+            align-items:end;
+        }
+
+        .form-label{ font-weight:600; }
+
+        .slots-wrap{
+            border:1px solid var(--border);
+            border-radius:18px;
+            padding: 14px;
+            background: color-mix(in srgb, var(--card) 90%, transparent);
+        }
+
+        .slot-row{
+            display:flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border:1px solid var(--border);
+            border-radius: 16px;
+            background: color-mix(in srgb, var(--card) 92%, transparent);
+            margin-top: 10px;
+        }
+
+        .disabled-row{ opacity:.62; }
+
+        .slot-left{
+            display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+            min-width: 240px;
+        }
+
+        .pill{
+            display:inline-flex; align-items:center; gap:.5rem;
+            padding:.40rem .7rem; border-radius:999px;
+            border:1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--chip-text);
+            font-weight:650;
+            font-size:.92rem;
+            white-space:nowrap;
+        }
+
+        .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+        .mini{
+            display:inline-flex; align-items:center; gap:.35rem;
+            padding:.18rem .5rem; border-radius:999px;
+            border:1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 86%, transparent);
+            color: var(--muted);
+            font-size:.82rem;
+            white-space:nowrap;
+        }
+
+        .kpi{ display:flex; gap:8px; flex-wrap:wrap; }
+
+        .tag-ok{ background: rgba(25,135,84,.12); color: color-mix(in srgb, #198754 70%, var(--text)); }
+        .tag-warn{ background: rgba(241,220,33,.14); color: color-mix(in srgb, #f1dc21 60%, var(--text)); }
+        .tag-bad{ background: rgba(220,53,69,.12); color: color-mix(in srgb, #dc3545 70%, var(--text)); }
+
+        .switch{
+            display:inline-flex; align-items:center; gap:8px;
+            user-select:none;
+        }
+        .switch input{ width: 44px; height: 24px; }
+
+        .notes{
+            flex:1;
+            min-width: 220px;
+            max-width: 520px;
+        }
+
+        .notes input{
+            width:100%;
+            border:1px solid var(--border);
+            border-radius: 12px;
+            padding: .55rem .7rem;
+            background: var(--card);
+            color: var(--text);
+        }
+
+        .notes input:focus{
+            outline:none;
+            border-color: color-mix(in srgb, var(--wine) 55%, var(--border));
+            box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--wine) 18%, transparent);
+        }
+
+        .actions{
+            display:flex; gap:10px; flex-wrap:wrap;
+            align-items:center;
+            justify-content:flex-end;
+            min-width: 250px;
+        }
+
+        .btn-mini{
+            padding: .45rem .7rem;
+            border-radius: 999px;
+            border:1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 92%, transparent);
+            color: var(--text);
+            font-weight:650;
+        }
+        .btn-mini:hover{
+            border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
+            background: color-mix(in srgb, var(--card) 78%, transparent);
+        }
+
+        .muted{ color: var(--muted); font-size:.92rem; }
+
+        /* Tabs */
+        .tabs{
+            display:flex; gap:10px; flex-wrap:wrap;
+            align-items:center;
+        }
+        .tabbtn{
+            border:1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 92%, transparent);
+            color: var(--text);
+            border-radius: 999px;
+            padding: .45rem .8rem;
+            font-weight: 650;
+            line-height: 1;
+            display:inline-flex;
+            align-items:center;
+            gap:.5rem;
+            user-select:none;
+        }
+        .tabbtn:hover{
+            border-color: color-mix(in srgb, var(--wine) 45%, var(--border));
+            background: color-mix(in srgb, var(--card) 78%, transparent);
+        }
+        .tabbtn.is-active{
+            border-color: color-mix(in srgb, var(--wine) 70%, var(--border));
+            background: color-mix(in srgb, var(--chip-bg) 70%, var(--card));
+            box-shadow: 0 10px 26px rgba(2, 6, 23, .10);
+        }
+        .badge{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width: 24px;
+            height: 20px;
+            padding: 0 .45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: color-mix(in srgb, var(--card) 86%, transparent);
+            font-size: .82rem;
+            color: var(--muted);
+        }
+
+        .group-date{
+            margin-top: 14px;
+            padding-top: 8px;
+            border-top: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+        }
+        .group-date:first-child{
+            margin-top: 6px;
+            padding-top: 0;
+            border-top: none;
+        }
+        .group-title{
+            display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+            margin: 6px 0 8px;
+        }
+
+        /* Small form row */
+        .row-form{
+            display:flex; gap:10px; flex-wrap:wrap; align-items:end;
+            margin-top: 10px;
+            padding: 10px;
+            border:1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+            border-radius: 16px;
+            background: color-mix(in srgb, var(--card) 94%, transparent);
+        }
+        .row-form .field{ min-width: 160px; }
+        .row-form input, .row-form select{
+            border:1px solid var(--border);
+            border-radius: 12px;
+            padding: .55rem .7rem;
+            background: var(--card);
+            color: var(--text);
+        }
+        .row-form input:focus, .row-form select:focus{
+            outline:none;
+            border-color: color-mix(in srgb, var(--wine) 55%, var(--border));
+            box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--wine) 18%, transparent);
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar navbar-dark app-navbar">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/admin/agenda">
+            <span class="brand-dot"></span>
+            <span class="fw-semibold">Admin • Horarios</span>
+        </a>
+
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-outline-light btn-sm rounded-4" href="/admin/agenda">Volver</a>
+
+            <form method="POST" action="/admin/logout" class="m-0">
+                <button class="btn btn-sm btn-outline-light rounded-4">Salir</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+            <h1 class="h3 page-title mb-1">Administración completa de horarios</h1>
+            <div class="subtle">CRUD de horarios base, desactivar por día y precios.</div>
+        </div>
+    </div>
+
+    <div class="card-soft p-4">
+        <div class="toolbar">
+            <div class="controls">
+                <div id="dateWrap">
+                    <label class="form-label">Fecha</label>
+                    <input id="trip_date" type="date" class="form-control"/>
+                </div>
+
+                <div>
+                    <label class="form-label">Dirección</label>
+                    <select id="direction" class="form-select">
+                        <option value="VIC_TO_LLE">Victoria → Llera</option>
+                        <option value="LLE_TO_VIC">Llera → Victoria</option>
+                    </select>
+                </div>
+
+                <button id="loadBtn" class="btn btn-wine" type="button">Cargar</button>
+            </div>
+
+            <div class="tabs" id="tabs">
+                <button type="button" class="tabbtn is-active" data-tab="ops">
+                    Operación (por fecha) <span class="badge" id="bOps">—</span>
+                </button>
+
+                <button type="button" class="tabbtn" data-tab="disabled_day">
+                    Desactivar por día <span class="badge" id="bDisabledDay">—</span>
+                </button>
+
+                <button type="button" class="tabbtn" data-tab="templates">
+                    Horarios base (CRUD) <span class="badge" id="bTemplates">—</span>
+                </button>
+
+                <button type="button" class="tabbtn" data-tab="pricing">
+                    Precios <span class="badge" id="bPricing">—</span>
+                </button>
+            </div>
+
+            <div class="muted" id="statusText">—</div>
+        </div>
+
+        <div class="slots-wrap">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="kpi">
+                    <span class="pill">📅 <span id="kDate">—</span></span>
+                    <span class="pill">🧭 <span id="kDir">—</span></span>
+                </div>
+                <div class="muted" id="hint">Selecciona pestaña.</div>
+            </div>
+
+            <div id="list"></div>
+        </div>
+    </div>
+
+</main>
+
+<%- include('partials/toast') %>
+<%- include('partials/footer') %>
+
+<script src="/js/theme.js"></script>
+
+<script>
+    const tripDateEl = document.getElementById("trip_date");
+    const directionEl = document.getElementById("direction");
+    const loadBtn = document.getElementById("loadBtn");
+    const listEl = document.getElementById("list");
+
+    const kDate = document.getElementById("kDate");
+    const kDir = document.getElementById("kDir");
+    const hint = document.getElementById("hint");
+    const statusText = document.getElementById("statusText");
+    const dateWrap = document.getElementById("dateWrap");
+
+    const tabsEl = document.getElementById("tabs");
+    const bOps = document.getElementById("bOps");
+    const bDisabledDay = document.getElementById("bDisabledDay");
+    const bTemplates = document.getElementById("bTemplates");
+    const bPricing = document.getElementById("bPricing");
+
+    let currentTab = "ops";
+
+    function todayISO(){
+        return new Date().toLocaleDateString("en-CA", { timeZone: "America/Monterrey" });
+    }
+
+    function addDaysISO(dateISO, days){
+        const d = new Date(`${dateISO}T00:00:00`);
+        d.setDate(d.getDate() + Number(days || 0));
+        return d.toLocaleDateString("en-CA", { timeZone: "America/Monterrey" });
+    }
+
+    function dirLabel(d){
+        return d === "VIC_TO_LLE" ? "Victoria → Llera" : "Llera → Victoria";
+    }
+
+    function tagByAvailability(avail){
+        const n = Number(avail || 0);
+        if (n <= 0) return "tag-bad";
+        if (n <= 2) return "tag-warn";
+        return "tag-ok";
+    }
+
+    function escapeHtml(s){
+        return String(s || "").replace(/[&<>"']/g, m => ({
+            "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+        }[m]));
+    }
+
+    async function apiGet(url){
+        const res = await fetch(url);
+        return res.json();
+    }
+
+    async function apiPost(url, body){
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(body)
+        });
+        return res.json();
+    }
+
+    /* -----------------------------
+       TAB: Operación (por fecha)
+    ----------------------------- */
+    function opsRowTemplate(r, date){
+        const disabledBecauseTemplate = !r.template_active;
+        const tripEnabled = (String(r.trip_status || "OPEN").toUpperCase() === "OPEN");
+        const availTag = tagByAvailability(r.available);
+
+        return `
+            <div class="slot-row ${disabledBecauseTemplate ? "disabled-row" : ""}" data-templateid="${r.template_id}">
+                <div class="slot-left">
+                    <span class="pill mono">🕒 ${escapeHtml(r.depart_time)}</span>
+                    <span class="mini">Cap: <strong>${r.capacity}</strong></span>
+                    <span class="mini">Usados: <strong>${r.used}</strong></span>
+                    <span class="mini ${availTag}">Libres: <strong>${r.available}</strong></span>
+                </div>
+
+                <div class="notes">
+                    <input class="notes-input"
+                           placeholder="Nota (opcional)"
+                           value="${escapeHtml(r.trip_notes || "")}"
+                           ${disabledBecauseTemplate ? "disabled" : ""}/>
+                </div>
+
+                <div class="actions">
+                    <label class="switch" title="Desactivar por completo (horario base)">
+                        <span class="muted">Completo</span>
+                        <input class="template-toggle" type="checkbox" ${r.template_active ? "checked" : ""}>
+                    </label>
+
+                    <label class="switch" title="Desactivar por día (solo esta fecha)">
+                        <span class="muted">Día</span>
+                        <input class="trip-toggle" type="checkbox"
+                            ${tripEnabled ? "checked" : ""}
+                            ${disabledBecauseTemplate ? "disabled" : ""}>
+                    </label>
+
+                    <button class="btn-mini saveNotesBtn" ${disabledBecauseTemplate ? "disabled" : ""}>Guardar nota</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadOps(){
+        const date = tripDateEl.value;
+        const direction = directionEl.value;
+
+        dateWrap.style.display = "";
+        kDate.textContent = date || "—";
+        kDir.textContent = dirLabel(direction);
+
+        if (!date){
+            hint.textContent = "Selecciona una fecha.";
+            listEl.innerHTML = "";
+            return;
+        }
+
+        hint.textContent = "Cargando…";
+        statusText.textContent = "Consultando BD…";
+
+        const data = await apiGet(`/admin/api/horarios?date=${encodeURIComponent(date)}&direction=${encodeURIComponent(direction)}`);
+        if (!data?.ok){
+            hint.textContent = "Error al cargar.";
+            statusText.textContent = "—";
+            listEl.innerHTML = "";
+            return;
+        }
+
+        const rows = data.rows || [];
+        bOps.textContent = String(rows.length);
+
+        if (!rows.length){
+            listEl.innerHTML = `<div class="muted mt-3">No hay horarios para esta dirección.</div>`;
+            hint.textContent = "Listo.";
+            statusText.textContent = "0";
+            return;
+        }
+
+        listEl.innerHTML = rows.map(r => opsRowTemplate(r, date)).join("");
+        hint.textContent = "Listo.";
+        statusText.textContent = `${rows.length} horario(s)`;
+
+        // events
+        listEl.querySelectorAll(".slot-row").forEach(row => {
+            const templateId = Number(row.dataset.templateid);
+            const templateToggle = row.querySelector(".template-toggle");
+            const tripToggle = row.querySelector(".trip-toggle");
+            const notesInput = row.querySelector(".notes-input");
+            const saveNotesBtn = row.querySelector(".saveNotesBtn");
+
+            templateToggle?.addEventListener("change", async () => {
+                templateToggle.disabled = true;
+                const active = templateToggle.checked;
+
+                // uso templates/update para estado global
+                const r = await apiPost("/admin/api/templates/update", {
+                    id: templateId,
+                    direction: directionEl.value,
+                    depart_time: row.querySelector(".pill.mono")?.textContent?.replace("🕒","").trim() || "",
+                    capacity_passengers: 6,
+                    active
+                });
+
+                templateToggle.disabled = false;
+
+                if (!r?.ok){
+                    templateToggle.checked = !active;
+                    notify("No pude actualizar el horario base.", {variant:"danger", delay:2200});
+                    return;
+                }
+
+                notify("Horario base actualizado.", {variant:"success", delay:1400});
+                load();
+            });
+
+            tripToggle?.addEventListener("change", async () => {
+                tripToggle.disabled = true;
+                const enabled = tripToggle.checked;
+
+                const r = await apiPost("/admin/api/horarios/trip", {
+                    trip_date: date,
+                    template_id: templateId,
+                    enabled,
+                    notes: notesInput?.value || ""
+                });
+
+                tripToggle.disabled = false;
+
+                if (!r?.ok){
+                    tripToggle.checked = !enabled;
+                    notify("No pude actualizar el horario del día.", {variant:"danger", delay:2200});
+                    return;
+                }
+
+                notify(enabled ? "Habilitado para ese día." : "Deshabilitado para ese día.", {variant:"success", delay:1600});
+                load();
+            });
+
+            saveNotesBtn?.addEventListener("click", async () => {
+                saveNotesBtn.disabled = true;
+
+                const r = await apiPost("/admin/api/horarios/notes", {
+                    trip_date: date,
+                    template_id: templateId,
+                    notes: notesInput?.value || ""
+                });
+
+                saveNotesBtn.disabled = false;
+
+                if (!r?.ok){
+                    notify("No pude guardar la nota.", {variant:"danger", delay:2200});
+                    return;
+                }
+
+                notify("Nota guardada.", {variant:"success", delay:1400});
+            });
+        });
+    }
+
+    /* -----------------------------
+       TAB: Desactivar por día (lista global)
+    ----------------------------- */
+    function disabledDayRowTemplate(r){
+        const availTag = tagByAvailability(r.available);
+        return `
+            <div class="slot-row" data-templateid="${r.template_id}" data-tripdate="${escapeHtml(r.trip_date)}">
+                <div class="slot-left">
+                    <span class="pill">📅 <span class="mono">${escapeHtml(r.trip_date)}</span></span>
+                    <span class="pill mono">🕒 ${escapeHtml(r.depart_time)}</span>
+                    <span class="mini">Cap: <strong>${r.capacity}</strong></span>
+                    <span class="mini">Usados: <strong>${r.used}</strong></span>
+                    <span class="mini ${availTag}">Libres: <strong>${r.available}</strong></span>
+                </div>
+
+                <div class="notes">
+                    <input class="notes-input" placeholder="Nota (opcional)" value="${escapeHtml(r.trip_notes || "")}"/>
+                </div>
+
+                <div class="actions">
+                    <button class="btn-mini enableBtn">Habilitar</button>
+                    <button class="btn-mini saveNotesBtn">Guardar nota</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadDisabledDay(){
+        const direction = directionEl.value;
+
+        dateWrap.style.display = "none";
+
+        const from = todayISO();
+        const to = addDaysISO(from, 60);
+
+        kDate.textContent = `${from} → ${to}`;
+        kDir.textContent = dirLabel(direction);
+
+        hint.textContent = "Cargando cancelados…";
+        statusText.textContent = "Consultando BD…";
+
+        const data = await apiGet(`/admin/api/horarios/disabled-days?direction=${encodeURIComponent(direction)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        if (!data?.ok){
+            hint.textContent = "Error al cargar.";
+            statusText.textContent = "—";
+            listEl.innerHTML = "";
+            return;
+        }
+
+        const rows = data.rows || [];
+        bDisabledDay.textContent = String(rows.length);
+
+        if (!rows.length){
+            listEl.innerHTML = `<div class="muted mt-3">No hay horarios desactivados por día en el rango.</div>`;
+            hint.textContent = "Listo.";
+            statusText.textContent = "0";
+            return;
+        }
+
+        // group by date
+        const map = new Map();
+        rows.forEach(r => {
+            if (!map.has(r.trip_date)) map.set(r.trip_date, []);
+            map.get(r.trip_date).push(r);
+        });
+
+        const blocks = [];
+        for (const [d, items] of map.entries()){
+            blocks.push(`
+                <div class="group-date">
+                    <div class="group-title">
+                        <span class="pill">📅 <span class="mono">${escapeHtml(d)}</span></span>
+                        <span class="mini">Cancelados: <strong>${items.length}</strong></span>
+                    </div>
+                    ${items.map(disabledDayRowTemplate).join("")}
+                </div>
+            `);
+        }
+
+        listEl.innerHTML = blocks.join("");
+        hint.textContent = "Listo.";
+        statusText.textContent = `${rows.length} cancelado(s)`;
+
+        // events
+        listEl.querySelectorAll(".slot-row").forEach(row => {
+            const templateId = Number(row.dataset.templateid);
+            const tripDate = String(row.dataset.tripdate || "");
+            const notesInput = row.querySelector(".notes-input");
+            const enableBtn = row.querySelector(".enableBtn");
+            const saveNotesBtn = row.querySelector(".saveNotesBtn");
+
+            enableBtn?.addEventListener("click", async () => {
+                enableBtn.disabled = true;
+
+                const r = await apiPost("/admin/api/horarios/trip", {
+                    trip_date: tripDate,
+                    template_id: templateId,
+                    enabled: true,
+                    notes: notesInput?.value || ""
+                });
+
+                enableBtn.disabled = false;
+
+                if (!r?.ok){
+                    notify("No pude habilitar.", {variant:"danger", delay:2200});
+                    return;
+                }
+
+                notify("Horario habilitado.", {variant:"success", delay:1400});
+                load();
+            });
+
+            saveNotesBtn?.addEventListener("click", async () => {
+                saveNotesBtn.disabled = true;
+
+                const r = await apiPost("/admin/api/horarios/notes", {
+                    trip_date: tripDate,
+                    template_id: templateId,
+                    notes: notesInput?.value || ""
+                });
+
+                saveNotesBtn.disabled = false;
+
+                if (!r?.ok){
+                    notify("No pude guardar la nota.", {variant:"danger", delay:2200});
+                    return;
+                }
+
+                notify("Nota guardada.", {variant:"success", delay:1400});
+            });
+        });
+    }
+
+    /* -----------------------------
+       TAB: Horarios base (CRUD)
+    ----------------------------- */
+    function templateRowTemplate(t){
+        const active = Number(t.active) === 1;
+
+        return `
+            <div class="slot-row ${active ? "" : "disabled-row"}" data-id="${t.id}">
+                <div class="slot-left">
+                    <span class="pill mono">#${t.id}</span>
+                    <span class="mini">Dirección: <strong>${escapeHtml(t.direction)}</strong></span>
+                </div>
+
+                <div class="notes" style="max-width: 360px;">
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <div class="mini">Hora</div>
+                        <input class="t-time" type="time" value="${escapeHtml(t.depart_time)}" style="min-width:140px;">
+                        <div class="mini">Cap (0–6)</div>
+                        <input class="t-cap" type="number" min="0" max="6" value="${Number(t.capacity_passengers || 0)}" style="width:90px;">
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <label class="switch" title="Desactivar por completo">
+                        <span class="muted">Activo</span>
+                        <input class="t-active" type="checkbox" ${active ? "checked" : ""}>
+                    </label>
+
+                    <button class="btn-mini t-save">Guardar</button>
+                    <button class="btn-mini t-disable">Desactivar</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadTemplates(){
+        const direction = directionEl.value;
+
+        dateWrap.style.display = "none";
+        kDate.textContent = "—";
+        kDir.textContent = dirLabel(direction);
+
+        hint.textContent = "Cargando horarios base…";
+        statusText.textContent = "Consultando BD…";
+
+        const data = await apiGet(`/admin/api/templates?direction=${encodeURIComponent(direction)}&includeInactive=1`);
+        if (!data?.ok){
+            hint.textContent = "Error al cargar.";
+            statusText.textContent = "—";
+            listEl.innerHTML = "";
+            return;
+        }
+
+        const rows = data.rows || [];
+        bTemplates.textContent = String(rows.length);
+
+        const addForm = `
+            <div class="row-form" id="addForm">
+                <div class="field">
+                    <div class="mini">Dirección</div>
+                    <select id="addDirection">
+                        <option value="VIC_TO_LLE" ${direction==="VIC_TO_LLE"?"selected":""}>Victoria → Llera</option>
+                        <option value="LLE_TO_VIC" ${direction==="LLE_TO_VIC"?"selected":""}>Llera → Victoria</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <div class="mini">Hora</div>
+                    <input id="addTime" type="time" value="06:30">
+                </div>
+                <div class="field">
+                    <div class="mini">Cap (0–6)</div>
+                    <input id="addCap" type="number" min="0" max="6" value="6">
+                </div>
+                <div class="field">
+                    <div class="mini">Activo</div>
+                    <select id="addActive">
+                        <option value="1" selected>Sí</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+                <button class="btn btn-wine" type="button" id="addBtn">Agregar</button>
+                <div class="muted">Tip: esto crea un horario base nuevo para esa dirección.</div>
+            </div>
+        `;
+
+        if (!rows.length){
+            listEl.innerHTML = addForm + `<div class="muted mt-3">Aún no hay horarios base. Agrega el primero arriba.</div>`;
+        } else {
+            listEl.innerHTML = addForm + rows.map(templateRowTemplate).join("");
+        }
+
+        hint.textContent = "Listo.";
+        statusText.textContent = `${rows.length} base`;
+
+        // Add
+        const addBtn = document.getElementById("addBtn");
+        addBtn?.addEventListener("click", async () => {
+            const dir = document.getElementById("addDirection").value;
+            const time = document.getElementById("addTime").value;
+            const cap = Number(document.getElementById("addCap").value || 0);
+            const active = Number(document.getElementById("addActive").value || 1);
+
+            addBtn.disabled = true;
+            const r = await apiPost("/admin/api/templates/create", {
+                direction: dir,
+                depart_time: time,
+                capacity_passengers: cap,
+                active
+            });
+            addBtn.disabled = false;
+
+            if (!r?.ok){
+                notify(r?.message || "No pude agregar el horario.", {variant:"danger", delay:2300});
+                return;
+            }
+
+            notify("Horario base agregado.", {variant:"success", delay:1500});
+            load();
+        });
+
+        // Row events
+        listEl.querySelectorAll(".slot-row[data-id]").forEach(row => {
+            const id = Number(row.dataset.id);
+            const timeEl = row.querySelector(".t-time");
+            const capEl = row.querySelector(".t-cap");
+            const activeEl = row.querySelector(".t-active");
+            const saveBtn = row.querySelector(".t-save");
+            const disableBtn = row.querySelector(".t-disable");
+
+            saveBtn?.addEventListener("click", async () => {
+                saveBtn.disabled = true;
+
+                const r = await apiPost("/admin/api/templates/update", {
+                    id,
+                    direction: directionEl.value,
+                    depart_time: timeEl.value,
+                    capacity_passengers: Number(capEl.value || 0),
+                    active: activeEl.checked ? 1 : 0
+                });
+
+                saveBtn.disabled = false;
+
+                if (!r?.ok){
+                    notify(r?.message || "No pude guardar.", {variant:"danger", delay:2300});
+                    return;
+                }
+
+                notify("Horario base actualizado.", {variant:"success", delay:1500});
+                load();
+            });
+
+            disableBtn?.addEventListener("click", async () => {
+                disableBtn.disabled = true;
+
+                const r = await apiPost("/admin/api/templates/disable", { id });
+
+                disableBtn.disabled = false;
+
+                if (!r?.ok){
+                    notify("No pude desactivar.", {variant:"danger", delay:2300});
+                    return;
+                }
+
+                notify("Horario base desactivado.", {variant:"success", delay:1500});
+                load();
+            });
+        });
+    }
+
+    /* -----------------------------
+       TAB: Precios
+    ----------------------------- */
+    async function loadPricing(){
+        const direction = directionEl.value;
+
+        dateWrap.style.display = "none";
+        kDate.textContent = "—";
+        kDir.textContent = dirLabel(direction);
+
+        hint.textContent = "Cargando precios…";
+        statusText.textContent = "Consultando BD…";
+
+        const data = await apiGet("/admin/api/pricing");
+        if (!data?.ok){
+            hint.textContent = "Error al cargar precios.";
+            statusText.textContent = "—";
+            listEl.innerHTML = "";
+            return;
+        }
+
+        bPricing.textContent = "✓";
+
+        const passenger = Number(data.passenger_price_mxn || 0).toFixed(2);
+        const pkg = Number(data.package_price_mxn || 0).toFixed(2);
+        const updated = data.updated_at ? String(data.updated_at) : "—";
+
+        listEl.innerHTML = `
+            <div class="row-form">
+                <div class="field">
+                    <div class="mini">Precio Pasajero (MXN)</div>
+                    <input id="pPassenger" type="number" step="0.01" min="0" value="${passenger}">
+                </div>
+                <div class="field">
+                    <div class="mini">Precio Paquetería (MXN)</div>
+                    <input id="pPackage" type="number" step="0.01" min="0" value="${pkg}">
+                </div>
+
+                <button class="btn btn-wine" type="button" id="savePricingBtn">Guardar</button>
+                <div class="muted">Última actualización: ${escapeHtml(updated)}</div>
+            </div>
+
+            <div class="muted mt-3">
+                Nota: el backend debe usar estos precios como “source of truth”.
+            </div>
+        `;
+
+        hint.textContent = "Listo.";
+        statusText.textContent = "Precios";
+
+        const btn = document.getElementById("savePricingBtn");
+        btn?.addEventListener("click", async () => {
+            btn.disabled = true;
+
+            const passengerPrice = Number(document.getElementById("pPassenger").value || 0);
+            const packagePrice = Number(document.getElementById("pPackage").value || 0);
+
+            const r = await apiPost("/admin/api/pricing", {
+                passenger_price_mxn: passengerPrice,
+                package_price_mxn: packagePrice
+            });
+
+            btn.disabled = false;
+
+            if (!r?.ok){
+                notify("No pude guardar precios.", {variant:"danger", delay:2200});
+                return;
+            }
+
+            notify("Precios guardados.", {variant:"success", delay:1500});
+            load();
+        });
+    }
+
+    /* -----------------------------
+       Router UI
+    ----------------------------- */
+    function setActiveTab(tab){
+        currentTab = tab || "ops";
+        tabsEl?.querySelectorAll(".tabbtn").forEach(btn => {
+            btn.classList.toggle("is-active", btn.dataset.tab === currentTab);
+        });
+        load();
+    }
+
+    async function load(){
+        if (currentTab === "ops") return loadOps();
+        if (currentTab === "disabled_day") return loadDisabledDay();
+        if (currentTab === "templates") return loadTemplates();
+        if (currentTab === "pricing") return loadPricing();
+        return loadOps();
+    }
+
+    tabsEl?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".tabbtn");
+        if (!btn) return;
+        setActiveTab(btn.dataset.tab);
+    });
+
+    // ✅ tu pedido: al cambiar fecha desde calendario actualice
+    tripDateEl?.addEventListener("change", () => {
+        if (currentTab === "ops") load();
+    });
+
+    // al cambiar dirección, refresco en cualquier tab
+    directionEl?.addEventListener("change", load);
+
+    loadBtn?.addEventListener("click", load);
+
+    if (!tripDateEl.value) tripDateEl.value = todayISO();
+    kDate.textContent = tripDateEl.value;
+    kDir.textContent = dirLabel(directionEl.value);
+
+    load();
+</script>
+</body>
+</html>

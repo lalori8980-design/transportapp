@@ -10,18 +10,14 @@ const router = express.Router();
 const ALLOWED_PAYMENT_METHODS = new Set(["TAQUILLA", "TRANSFERENCIA", "ONLINE"]);
 const ALLOWED_TYPES = new Set(["PASSENGER", "PACKAGE"]);
 
-// ✅ Cupo máximo del sistema
+// ✅ System max cap
 const MAX_CAP = 6;
-
-// I keep pricing on the server as the source of truth.
-const PRICE_MXN = 120.0;
 
 function requireDb(req, res, next) {
     if (hasDb) return next();
     return res.status(503).render("maintenance", {
         title: "Sitio en configuración",
-        message:
-            "El sitio está activo, pero la base de datos aún no está configurada. Intenta más tarde.",
+        message: "El sitio está activo, pero la base de datos aún no está configurada. Intenta más tarde.",
     });
 }
 
@@ -59,41 +55,70 @@ function moneyMXN(n) {
     return Math.round(v * 100) / 100;
 }
 
-function computeTotals(type, seats) {
-    // I calculate server totals consistently (PACKAGE is fixed and does not consume seats).
-    const unit = moneyMXN(PRICE_MXN);
+/* -----------------------------
+   Pricing (DB source of truth)
+----------------------------- */
+
+async function getPricing(conn) {
+    // I read pricing from transporte_settings (id=1). If missing, I fallback to 120.
+    try {
+        const [[row]] = await conn.query(
+            `SELECT passenger_price_mxn, package_price_mxn FROM transporte_settings WHERE id=1`
+        );
+        const passenger = Number(row?.passenger_price_mxn ?? 120);
+        const pkg = Number(row?.package_price_mxn ?? 120);
+
+        return {
+            passenger_price_mxn: moneyMXN(passenger),
+            package_price_mxn: moneyMXN(pkg),
+        };
+    } catch {
+        return { passenger_price_mxn: 120, package_price_mxn: 120 };
+    }
+}
+
+function computeTotalsWithPricing(type, seats, pricing) {
+    // I compute totals based on current pricing (PASSENGER is per seat, PACKAGE is fixed).
     const t = String(type || "").toUpperCase();
     const s = Math.max(1, Number(seats || 1));
 
+    const passengerUnit = moneyMXN(pricing.passenger_price_mxn);
+    const packageUnit = moneyMXN(pricing.package_price_mxn);
+
+    const unit = t === "PASSENGER" ? passengerUnit : packageUnit;
     const total = t === "PASSENGER" ? moneyMXN(unit * s) : moneyMXN(unit);
+
     return { unit_price_mxn: unit, amount_total_mxn: total };
 }
 
+/* -----------------------------
+   Trips helpers
+----------------------------- */
+
 async function getOrCreateTrip(conn, templateId, tripDate) {
     const [rows] = await conn.query(
-        "SELECT id FROM transporte_trips WHERE template_id=? AND trip_date=?",
+        "SELECT id, status FROM transporte_trips WHERE template_id=? AND trip_date=?",
         [templateId, tripDate]
     );
-    if (rows.length) return rows[0].id;
+    if (rows.length) return { id: rows[0].id, status: rows[0].status || "OPEN" };
 
     try {
         const [ins] = await conn.query(
-            "INSERT INTO transporte_trips(template_id, trip_date) VALUES (?, ?)",
+            "INSERT INTO transporte_trips(template_id, trip_date, status) VALUES (?, ?, 'OPEN')",
             [templateId, tripDate]
         );
-        return ins.insertId;
+        return { id: ins.insertId, status: "OPEN" };
     } catch {
         const [again] = await conn.query(
-            "SELECT id FROM transporte_trips WHERE template_id=? AND trip_date=?",
+            "SELECT id, status FROM transporte_trips WHERE template_id=? AND trip_date=?",
             [templateId, tripDate]
         );
-        return again[0].id;
+        return { id: again[0].id, status: again[0].status || "OPEN" };
     }
 }
 
 async function computeAvailable(conn, tripId) {
-    // I compute availability using passenger_count when available, falling back to r.seats, then 1.
-    // ✅ además limito la capacidad a MAX_CAP para que siempre sea 6.
+    // I compute remaining seats for a trip (only PASSENGER seats count) and clamp capacity to MAX_CAP.
     const [[row]] = await conn.query(
         `
             SELECT
@@ -153,7 +178,14 @@ router.get(
     "/reserve",
     requireDb,
     safe(async (req, res) => {
-        res.render("reserve", { error: null });
+        // I pass pricing to the UI so it can show correct totals.
+        const conn = await pool.getConnection();
+        try {
+            const pricing = await getPricing(conn);
+            res.render("reserve", { error: null, pricing });
+        } finally {
+            conn.release();
+        }
     })
 );
 
@@ -166,7 +198,7 @@ router.get(
     safe(async (req, res) => {
         const { date, direction } = req.query;
 
-        // ✅ hasta 6 (y permite 0 para paquetería)
+        // ✅ up to 6 (and allow 0 for PACKAGE)
         const seatsWanted = Math.max(0, Math.min(MAX_CAP, Number(req.query.seats || 1)));
 
         const conn = await pool.getConnection();
@@ -183,9 +215,14 @@ router.get(
             );
 
             const results = [];
+
             for (const t of templates) {
-                const tripId = await getOrCreateTrip(conn, t.id, date);
-                const available = await computeAvailable(conn, tripId);
+                const trip = await getOrCreateTrip(conn, t.id, date);
+
+                // If the trip is CANCELLED for that date, I hide it from reservable options.
+                if (String(trip.status || "OPEN").toUpperCase() !== "OPEN") continue;
+
+                const available = await computeAvailable(conn, trip.id);
                 results.push({ time: t.depart_time, available });
             }
 
@@ -236,60 +273,75 @@ router.post(
         let seats = 0;
         if (type === "PASSENGER") {
             const wanted = Number(req.body.seats || 1);
-
-            // ✅ hasta 6
             seats = Math.max(1, Math.min(MAX_CAP, wanted));
         } else {
-            // I keep PACKAGE without consuming seats.
+            // PACKAGE doesn't consume seats
             seats = 0;
         }
 
         let passengerNames = req.body.passenger_names || [];
         if (typeof passengerNames === "string") passengerNames = [passengerNames];
-
-        passengerNames = passengerNames
-            .map((s) => String(s).trim())
-            .filter(Boolean);
-
-        // I compute pricing on the server (source of truth).
-        const { unit_price_mxn, amount_total_mxn } = computeTotals(type, seats);
+        passengerNames = passengerNames.map((s) => String(s).trim()).filter(Boolean);
 
         const conn = await pool.getConnection();
         try {
             await conn.beginTransaction();
 
+            // ✅ pricing source of truth (inside TX)
+            const pricing = await getPricing(conn);
+            const { unit_price_mxn, amount_total_mxn } = computeTotalsWithPricing(type, seats, pricing);
+
             const [[template]] = await conn.query(
                 `
-                    SELECT id
-                    FROM transporte_departure_templates
-                    WHERE active = 1
-                      AND direction = ?
-                      AND depart_time = ?
+                SELECT id
+                FROM transporte_departure_templates
+                WHERE active = 1
+                    AND direction = ?
+                    AND depart_time = ?
                 `,
                 [direction, depart_time]
             );
             if (!template) throw new Error("Horario no válido.");
 
-            const tripId = await getOrCreateTrip(conn, template.id, trip_date);
+            const trip = await getOrCreateTrip(conn, template.id, trip_date);
 
-            await conn.query("SELECT id FROM transporte_trips WHERE id=? FOR UPDATE", [tripId]);
+            // I lock trip row and verify it is OPEN before reserving.
+            const [[tr]] = await conn.query(
+                "SELECT id, status FROM transporte_trips WHERE id=? FOR UPDATE",
+                [trip.id]
+            );
 
-            const available = await computeAvailable(conn, tripId);
+            const st = String(tr?.status || "OPEN").toUpperCase();
+            if (st !== "OPEN") {
+                await conn.rollback();
+                const pricing2 = await getPricing(conn).catch(() => null);
+                return res.status(400).render("reserve", {
+                    error: "Ese horario está deshabilitado para esa fecha. Elige otra hora.",
+                    pricing: pricing2 || undefined,
+                });
+            }
+
+            const available = await computeAvailable(conn, trip.id);
+
             if (type === "PASSENGER" && available < seats) {
                 await conn.rollback();
+                const pricing2 = await getPricing(conn).catch(() => null);
                 return res.status(409).render("reserve", {
                     error: "Ya no hay cupo para esa salida. Elige otra hora.",
+                    pricing: pricing2 || undefined,
                 });
             }
 
             if (type === "PASSENGER") {
                 if (passengerNames.length !== seats) {
                     await conn.rollback();
+                    const pricing2 = await getPricing(conn).catch(() => null);
                     return res.status(400).render("reserve", {
                         error: `Debes capturar ${seats} nombre(s) de pasajero.`,
+                        pricing: pricing2 || undefined,
                     });
                 }
-                // contacto = primer pasajero
+                // contacto = first passenger
                 customer_name = passengerNames[0];
             } else {
                 passengerNames = [];
@@ -305,7 +357,7 @@ router.post(
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `,
                 [
-                    tripId,
+                    trip.id, // ✅ FIX: it was tripId (undefined)
                     type,
                     seats,
                     customer_name,
@@ -333,7 +385,6 @@ router.post(
 
             await conn.commit();
 
-            // ✅ ONLINE -> checkout first, then /pay
             if (payment_method === "ONLINE") {
                 return res.redirect(`/checkout/${reservationId}`);
             }
@@ -341,7 +392,14 @@ router.post(
             return res.redirect(`/pay/${reservationId}`);
         } catch (e) {
             await conn.rollback();
-            res.status(500).render("reserve", { error: e.message });
+
+            // I try to render reserve again with pricing if possible (so UI doesn't break).
+            let pricing = null;
+            try {
+                pricing = await getPricing(pool);
+            } catch {}
+
+            return res.status(500).render("reserve", { error: e.message, pricing: pricing || undefined });
         } finally {
             conn.release();
         }
@@ -350,7 +408,6 @@ router.post(
 
 /**
  * Checkout (ONLINE payment screen)
- * Replace this with Stripe/MercadoPago session creation later.
  */
 router.get(
     "/checkout/:reservationId",
@@ -371,17 +428,25 @@ router.get(
         if (!r) return res.status(404).send("Reserva no encontrada.");
 
         const pm = String(r.payment_method || "").toUpperCase();
-        if (pm !== "ONLINE") {
-            return res.redirect(`/pay/${reservationId}`);
-        }
+        if (pm !== "ONLINE") return res.redirect(`/pay/${reservationId}`);
 
         const folio = folioFromReservationId(r.id, r.trip_date);
 
-        // I trust DB totals if present.
-        const total =
+        // I trust DB totals. If missing, I recompute with current pricing as fallback.
+        let total =
             r.amount_total_mxn != null && r.amount_total_mxn !== ""
                 ? Number(r.amount_total_mxn)
-                : computeTotals(r.type, r.seats).amount_total_mxn;
+                : null;
+
+        if (total == null) {
+            const conn = await pool.getConnection();
+            try {
+                const pricing = await getPricing(conn);
+                total = computeTotalsWithPricing(r.type, r.seats, pricing).amount_total_mxn;
+            } finally {
+                conn.release();
+            }
+        }
 
         res.render("checkout", { r, folio, total, directionLabel });
     })
@@ -400,15 +465,10 @@ router.post(
         if (!r) return res.status(404).send("Reserva no encontrada.");
 
         const pm = String(r.payment_method || "").toUpperCase();
-        if (pm !== "ONLINE") {
-            return res.redirect(`/pay/${reservationId}`);
-        }
+        if (pm !== "ONLINE") return res.redirect(`/pay/${reservationId}`);
 
-        // I mark as PAID after a successful online payment.
         await pool.query(
-            `UPDATE transporte_reservations
-             SET status='PAID', paid_at=NOW()
-             WHERE id=?`,
+            `UPDATE transporte_reservations SET status='PAID', paid_at=NOW() WHERE id=?`,
             [reservationId]
         );
 
@@ -437,14 +497,9 @@ router.get(
         );
         if (!r) return res.status(404).send("Reserva no encontrada.");
 
-        // ✅ If ONLINE and still unpaid, I force checkout first.
         const pm = String(r.payment_method || "").toUpperCase();
         const st = String(r.status || "").toUpperCase();
-
-        // if it's online and NOT paid yet -> go checkout
-        if (pm === "ONLINE" && st !== "PAID") {
-            return res.redirect(`/checkout/${reservationId}`);
-        }
+        if (pm === "ONLINE" && st !== "PAID") return res.redirect(`/checkout/${reservationId}`);
 
         const folio = folioFromReservationId(r.id, r.trip_date);
         res.render("pay", { r, folio, directionLabel });
@@ -554,13 +609,8 @@ router.get(
             [row.reservation_id]
         );
 
-        let passengers = pRows
-            .map((x) => String(x.passenger_name || "").trim())
-            .filter(Boolean);
-
-        if (row.type === "PASSENGER" && passengers.length === 0) {
-            passengers = [row.customer_name || "Pasajero"];
-        }
+        let passengers = pRows.map((x) => String(x.passenger_name || "").trim()).filter(Boolean);
+        if (row.type === "PASSENGER" && passengers.length === 0) passengers = [row.customer_name || "Pasajero"];
 
         const baseUrl = process.env.BASE_URL || "";
         const url = `${baseUrl}/ticket/${row.code}`;
@@ -588,9 +638,7 @@ router.get(
             if (doc.widthOfString(s) <= maxWidth) return s;
 
             let out = s;
-            while (out.length > 0 && doc.widthOfString(out + "…") > maxWidth) {
-                out = out.slice(0, -1);
-            }
+            while (out.length > 0 && doc.widthOfString(out + "…") > maxWidth) out = out.slice(0, -1);
             return (out.length ? out : "") + "…";
         }
 
@@ -700,11 +748,9 @@ router.get(
             const pageH = doc.page.height;
 
             const headerH = drawHeader(pageW);
-
             const rowsCount = 6;
             const qrSize = pickQrSize(pageW, pageH, headerH, rowsCount);
 
-            const { safeBottomY } = qrLayout(pageW, pageH, qrSize);
             drawQR(pageW, pageH, qrSize);
 
             let y = headerH + 12;
@@ -730,17 +776,11 @@ router.get(
             y = kvRow("Teléfono", String(row.phone || "-"), y, pageW);
 
             if (row.type === "PASSENGER") {
-                const v = String(passengerName || "-");
-                const tight = ellipsize(v, pageW - 80, "Helvetica", 9.5);
+                const tight = ellipsize(String(passengerName || "-"), pageW - 80, "Helvetica", 9.5);
                 y = kvRow("Pasajero", tight, y, pageW);
             } else {
-                const d = String(row.package_details || "-");
-                const tight = ellipsize(d, pageW - 80, "Helvetica", 9.5);
+                const tight = ellipsize(String(row.package_details || "-"), pageW - 80, "Helvetica", 9.5);
                 y = kvRow("Detalle", tight, y, pageW);
-            }
-
-            if (y > safeBottomY) {
-                // I keep this as a final safety check; pickQrSize should prevent overflow.
             }
         }
 
@@ -759,6 +799,21 @@ router.get(
         } catch (e) {
             try { doc.end(); } catch {}
             return res.status(500).send(e.message);
+        }
+    })
+);
+
+router.get(
+    "/pricing",
+    requireDb,
+    safe(async (req, res) => {
+        // I return current pricing for passenger and package from DB settings.
+        const conn = await pool.getConnection();
+        try {
+            const pricing = await getPricing(conn);
+            return res.json({ ok: true, ...pricing });
+        } finally {
+            conn.release();
         }
     })
 );

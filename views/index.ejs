@@ -318,6 +318,14 @@
                 max-width: 90%;
             }
         }
+
+        .admin-hotspot{
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation; /* reduce gestos como double-tap zoom */
+        }
+
     </style>
 </head>
 
@@ -484,23 +492,36 @@
 <script>
     (function () {
         const hotspot = document.getElementById("adminHotspot");
-        let taps = 0;
-        let timer = null;
 
-        function reset() {
-            taps = 0;
-            if (timer) clearTimeout(timer);
-            timer = null;
+        const HOLD_MS = 2000;
+        let holdTimer = null;
+
+        function startHold(e) {
+            // Evita selección / comportamientos raros
+            e.preventDefault();
+
+            if (holdTimer) return;
+
+            holdTimer = setTimeout(() => {
+                holdTimer = null;
+                window.location.href = "/admin/login";
+            }, HOLD_MS);
         }
 
-        hotspot.addEventListener("click", () => {
-            taps += 1;
-            if (!timer) timer = setTimeout(reset, 1200);
-            if (taps >= 3) {
-                reset();
-                window.location.href = "/admin/login";
-            }
-        });
+        function cancelHold() {
+            if (!holdTimer) return;
+            clearTimeout(holdTimer);
+            holdTimer = null;
+        }
+
+        // Pointer events (mejor compatibilidad que touchstart/touchend)
+        hotspot.addEventListener("pointerdown", startHold, { passive: false });
+        hotspot.addEventListener("pointerup", cancelHold);
+        hotspot.addEventListener("pointercancel", cancelHold);
+        hotspot.addEventListener("pointerleave", cancelHold);
+
+        // Evita menú contextual al mantener presionado (Android/iOS)
+        hotspot.addEventListener("contextmenu", (e) => e.preventDefault());
     })();
 
     (function () {
