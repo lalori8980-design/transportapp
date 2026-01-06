@@ -3,6 +3,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const {pool, hasDb} = require("../db");
+const crypto = require("crypto");
 
 const router = express.Router();
 
@@ -750,5 +751,99 @@ router.post("/api/pricing", requireAdmin, requireDb, async (req, res) => {
         return res.status(500).json({ok: false});
     }
 });
+
+function genTicketCode() {
+    // I generate a short, URL-safe-ish code for tickets (uppercase for readability).
+    return crypto.randomBytes(6).toString("base64url").toUpperCase();
+}
+
+/* =========================================================
+   MARCAR COMO PAGADO + GENERAR TICKET
+   POST /admin/reservation/:id/mark-paid  (router path = /reservation/:id/mark-paid)
+========================================================= */
+router.post("/reservation/:id/mark-paid", requireAdmin, requireDb, async (req, res) => {
+    const id = Number(req.params.id || 0);
+
+    const raw = String(req.body.method || "").trim().toUpperCase();
+    const payment_method =
+        raw === "CASH" || raw === "EFECTIVO" ? "TAQUILLA" :
+            raw === "TRANSFER" || raw === "TRANSFERENCIA" ? "TRANSFERENCIA" :
+                raw === "ONLINE" ? "ONLINE" :
+                    null;
+
+    if (!id || !payment_method) {
+        return res.status(400).send("Datos inválidos.");
+    }
+
+    const back = req.get("Referrer") || "/admin/agenda";
+
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        // I lock the reservation so ticket/status updates are race-safe.
+        const [[r]] = await conn.query(
+            `SELECT id, status FROM transporte_reservations WHERE id=? FOR UPDATE`,
+            [id]
+        );
+
+        if (!r) {
+            await conn.rollback();
+            return res.status(404).send("Reserva no encontrada.");
+        }
+
+        if (String(r.status || "").toUpperCase() === "CANCELLED") {
+            await conn.rollback();
+            return res.redirect(back);
+        }
+
+        // I mark it as paid.
+        await conn.query(
+            `UPDATE transporte_reservations
+             SET status='PAID', paid_at=NOW(), payment_method=?
+             WHERE id=?`,
+            [payment_method, id]
+        );
+
+        // I create the ticket if missing.
+        const [[tk]] = await conn.query(
+            `SELECT code FROM transporte_tickets WHERE reservation_id=? LIMIT 1`,
+            [id]
+        );
+
+        if (!tk?.code) {
+            let created = false;
+
+            // I retry a few times in case the ticket code collides with a UNIQUE index.
+            for (let attempt = 0; attempt < 10 && !created; attempt++) {
+                const code = genTicketCode();
+                try {
+                    await conn.query(
+                        `INSERT INTO transporte_tickets(reservation_id, code, issued_at)
+                         VALUES (?, ?, NOW())`,
+                        [id, code]
+                    );
+                    created = true;
+                } catch (e) {
+                    const msg = String(e?.code || e?.message || "");
+                    if (msg.includes("ER_DUP") || msg.includes("DUP")) continue;
+                    throw e;
+                }
+            }
+
+            if (!created) throw new Error("No pude generar el ticket (colisiones).");
+        }
+
+        await conn.commit();
+        return res.redirect(back);
+    } catch (e) {
+        try { await conn.rollback(); } catch {}
+        console.error(e);
+        return res.status(500).send(e.message || "Error al marcar pagado.");
+    } finally {
+        conn.release();
+    }
+});
+
 
 module.exports = router;

@@ -40,14 +40,10 @@ function directionLabel(direction) {
     return direction === "VIC_TO_LLE" ? "Victoria → Llera" : "Llera → Victoria";
 }
 
-function pad(n, width) {
-    const s = String(n);
-    return s.length >= width ? s : "0".repeat(width - s.length) + s;
-}
-
+// ✅ Folio SIN ceros a la izquierda
 function folioFromReservationId(id, dateStr) {
     const ymd = String(dateStr || "").replaceAll("-", "");
-    return `RES-${ymd}-${pad(id, 6)}`;
+    return `RES-${ymd}-${String(id ?? "")}`;
 }
 
 function moneyMXN(n) {
@@ -63,7 +59,9 @@ async function getPricing(conn) {
     // I read pricing from transporte_settings (id=1). If missing, I fallback to 120.
     try {
         const [[row]] = await conn.query(
-            `SELECT passenger_price_mxn, package_price_mxn FROM transporte_settings WHERE id=1`
+            `SELECT passenger_price_mxn, package_price_mxn
+             FROM transporte_settings
+             WHERE id = 1`
         );
         const passenger = Number(row?.passenger_price_mxn ?? 120);
         const pkg = Number(row?.package_price_mxn ?? 120);
@@ -121,29 +119,26 @@ async function computeAvailable(conn, tripId) {
     // I compute remaining seats for a trip (only PASSENGER seats count) and clamp capacity to MAX_CAP.
     const [[row]] = await conn.query(
         `
-            SELECT
-                GREATEST(
-                        LEAST(dt.capacity_passengers, ?) - COALESCE(
-                                SUM(
-                                        CASE
-                                            WHEN r.type = 'PASSENGER'
-                                                AND r.status IN ('PENDING_PAYMENT', 'PAY_AT_BOARDING', 'PAID')
-                                                THEN COALESCE(rp.passenger_count, NULLIF(r.seats,0), 1)
-                                            ELSE 0
-                                            END
-                                ),
-                                0
-                                                           ),
-                        0
-                ) AS available
+            SELECT GREATEST(
+                           LEAST(dt.capacity_passengers, ?) - COALESCE(
+                                   SUM(
+                                           CASE
+                                               WHEN r.type = 'PASSENGER'
+                                                   AND r.status IN ('PENDING_PAYMENT', 'PAY_AT_BOARDING', 'PAID')
+                                                   THEN COALESCE(rp.passenger_count, NULLIF(r.seats, 0), 1)
+                                               ELSE 0
+                                               END
+                                   ),
+                                   0
+                                                              ),
+                           0
+                   ) AS available
             FROM transporte_trips t
                      JOIN transporte_departure_templates dt ON dt.id = t.template_id
                      LEFT JOIN transporte_reservations r ON r.trip_id = t.id
-                     LEFT JOIN (
-                SELECT reservation_id, COUNT(*) AS passenger_count
-                FROM transporte_reservation_passengers
-                GROUP BY reservation_id
-            ) rp ON rp.reservation_id = r.id
+                     LEFT JOIN (SELECT reservation_id, COUNT(*) AS passenger_count
+                                FROM transporte_reservation_passengers
+                                GROUP BY reservation_id) rp ON rp.reservation_id = r.id
             WHERE t.id = ?
             GROUP BY dt.capacity_passengers
         `,
@@ -252,6 +247,15 @@ router.post(
             transfer_ref,
         } = req.body;
 
+        // I require contact name for all reservation types.
+        customer_name = String(customer_name || "").trim();
+
+        // I normalize phone too (basic trim; pattern is enforced in UI).
+        phone = String(phone || "").trim();
+
+        // I normalize package details (only required for PACKAGE).
+        package_details = String(package_details || "").trim();
+
         // I normalize and validate the reservation type.
         type = String(type || "PASSENGER").trim().toUpperCase();
         if (!ALLOWED_TYPES.has(type)) {
@@ -293,11 +297,11 @@ router.post(
 
             const [[template]] = await conn.query(
                 `
-                SELECT id
-                FROM transporte_departure_templates
-                WHERE active = 1
-                    AND direction = ?
-                    AND depart_time = ?
+                    SELECT id
+                    FROM transporte_departure_templates
+                    WHERE active = 1
+                      AND direction = ?
+                      AND depart_time = ?
                 `,
                 [direction, depart_time]
             );
@@ -332,37 +336,56 @@ router.post(
                 });
             }
 
-            if (type === "PASSENGER") {
-                if (passengerNames.length !== seats) {
+            // ✅ Contact name is always required now.
+            if (!customer_name) {
+                await conn.rollback();
+                const pricing2 = await getPricing(conn).catch(() => null);
+                return res.status(400).render("reserve", {
+                    error: "Completa el nombre de contacto.",
+                    pricing: pricing2 || undefined,
+                });
+            }
+
+            if (type === "PACKAGE") {
+                // ✅ PACKAGE requires details.
+                if (!package_details) {
                     await conn.rollback();
                     const pricing2 = await getPricing(conn).catch(() => null);
                     return res.status(400).render("reserve", {
-                        error: `Debes capturar ${seats} nombre(s) de pasajero.`,
+                        error: "Completa el detalle de paquetería.",
                         pricing: pricing2 || undefined,
                     });
                 }
-                // contacto = first passenger
-                customer_name = passengerNames[0];
-            } else {
+
+                // PACKAGE never stores passenger names.
                 passengerNames = [];
+            } else {
+                // ✅ PASSENGER: passenger names are optional.
+                // If the user provided any, I require they match the seat count.
+                if (passengerNames.length > 0 && passengerNames.length !== seats) {
+                    await conn.rollback();
+                    const pricing2 = await getPricing(conn).catch(() => null);
+                    return res.status(400).render("reserve", {
+                        error: `Si capturas nombres, deben ser ${seats} (uno por asiento). O déjalo vacío para reservar rápido.`,
+                        pricing: pricing2 || undefined,
+                    });
+                }
             }
 
             const [ins] = await conn.query(
                 `
-                    INSERT INTO transporte_reservations(
-                        trip_id, type, seats, customer_name, phone, package_details,
-                        payment_method, transfer_ref, status,
-                        unit_price_mxn, amount_total_mxn
-                    )
+                    INSERT INTO transporte_reservations(trip_id, type, seats, customer_name, phone, package_details,
+                                                        payment_method, transfer_ref, status,
+                                                        unit_price_mxn, amount_total_mxn)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `,
                 [
-                    trip.id, // ✅ FIX: it was tripId (undefined)
+                    trip.id,
                     type,
                     seats,
                     customer_name,
                     phone,
-                    package_details || null,
+                    type === "PACKAGE" ? package_details : null,
                     payment_method,
                     transfer_ref,
                     status,
@@ -378,7 +401,8 @@ router.post(
                 const params = passengerNames.flatMap((n) => [reservationId, n]);
 
                 await conn.query(
-                    `INSERT INTO transporte_reservation_passengers(reservation_id, passenger_name) VALUES ${placeholders}`,
+                    `INSERT INTO transporte_reservation_passengers(reservation_id, passenger_name)
+                     VALUES ${placeholders}`,
                     params
                 );
             }
@@ -396,7 +420,12 @@ router.post(
             // I try to render reserve again with pricing if possible (so UI doesn't break).
             let pricing = null;
             try {
-                pricing = await getPricing(pool);
+                const conn2 = await pool.getConnection();
+                try {
+                    pricing = await getPricing(conn2);
+                } finally {
+                    conn2.release();
+                }
             } catch {}
 
             return res.status(500).render("reserve", { error: e.message, pricing: pricing || undefined });
@@ -459,7 +488,9 @@ router.post(
         const { reservationId } = req.params;
 
         const [[r]] = await pool.query(
-            `SELECT id, payment_method, status FROM transporte_reservations WHERE id=?`,
+            `SELECT id, payment_method, status
+             FROM transporte_reservations
+             WHERE id = ?`,
             [reservationId]
         );
         if (!r) return res.status(404).send("Reserva no encontrada.");
@@ -468,7 +499,10 @@ router.post(
         if (pm !== "ONLINE") return res.redirect(`/pay/${reservationId}`);
 
         await pool.query(
-            `UPDATE transporte_reservations SET status='PAID', paid_at=NOW() WHERE id=?`,
+            `UPDATE transporte_reservations
+             SET status='PAID',
+                 paid_at=NOW()
+             WHERE id = ?`,
             [reservationId]
         );
 
@@ -519,7 +553,7 @@ router.get(
             `
                 SELECT tk.code,
                        tk.issued_at,
-                       r.id AS reservation_id,
+                       r.id                                                        AS reservation_id,
                        r.customer_name,
                        r.phone,
                        r.type,
@@ -546,6 +580,15 @@ router.get(
         );
 
         if (!row) return res.status(404).send("Ticket no encontrado.");
+
+        // ✅ If no passengers captured, I synthesize "Pasajero 1, Pasajero 2..."
+        if (row.type === "PASSENGER") {
+            const hasNames = String(row.passenger_names || "").trim();
+            if (!hasNames) {
+                const n = Math.max(1, Number(row.seats || 1));
+                row.passenger_names = Array.from({ length: n }, (_, i) => `Pasajero ${i + 1}`).join(", ");
+            }
+        }
 
         const baseUrl = process.env.BASE_URL || "";
         const url = `${baseUrl}/ticket/${row.code}`;
@@ -605,12 +648,20 @@ router.get(
         if (!row) return res.status(404).send("Ticket no encontrado.");
 
         const [pRows] = await pool.query(
-            `SELECT passenger_name FROM transporte_reservation_passengers WHERE reservation_id=? ORDER BY id`,
+            `SELECT passenger_name
+             FROM transporte_reservation_passengers
+             WHERE reservation_id = ?
+             ORDER BY id`,
             [row.reservation_id]
         );
 
-        let passengers = pRows.map((x) => String(x.passenger_name || "").trim()).filter(Boolean);
-        if (row.type === "PASSENGER" && passengers.length === 0) passengers = [row.customer_name || "Pasajero"];
+        let passengers = (pRows || []).map((x) => String(x.passenger_name || "").trim()).filter(Boolean);
+
+        // ✅ If no passengers captured, use "Pasajero 1..n" based on seats
+        if (row.type === "PASSENGER" && passengers.length === 0) {
+            const n = Math.max(1, Number(row.seats || 1));
+            passengers = Array.from({ length: n }, (_, i) => `Pasajero ${i + 1}`);
+        }
 
         const baseUrl = process.env.BASE_URL || "";
         const url = `${baseUrl}/ticket/${row.code}`;
@@ -797,7 +848,9 @@ router.get(
 
             doc.end();
         } catch (e) {
-            try { doc.end(); } catch {}
+            try {
+                doc.end();
+            } catch {}
             return res.status(500).send(e.message);
         }
     })

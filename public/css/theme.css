@@ -124,7 +124,15 @@ body{
     .footer-cta{ position: static; }
 }
 
-.toast-stack{
+/* =========================
+   Toast Host (unificado: toast-stack + bootstrap containers)
+   ========================= */
+.toast-stack,
+#toastHost,
+.toast-host,
+.toast-container,
+.toast-container.position-fixed,
+.toast-container.p-3{
     position: fixed;
     top: 16px;
     right: 16px;
@@ -132,8 +140,19 @@ body{
     gap: 10px;
     z-index: 9999;
 }
+
 @media (max-width:576px){
-    .toast-stack{ left: 12px; right: 12px; top: auto; bottom: 12px; }
+    .toast-stack,
+    #toastHost,
+    .toast-host,
+    .toast-container,
+    .toast-container.position-fixed,
+    .toast-container.p-3{
+        left: 12px;
+        right: 12px;
+        top: auto;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
 }
 
 /* =========================
@@ -148,8 +167,18 @@ body{
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     overflow: hidden;
-    min-width: 320px;
+
+    /* ✅ FIX: no min-width en móvil */
+    min-width: 0;
     max-width: 420px;
+}
+
+@media (max-width:576px){
+    .toast.app-toast{
+        width: 100%;
+        max-width: none;
+        border-radius: 18px;
+    }
 }
 
 .app-toast-inner{
@@ -174,7 +203,17 @@ body{
 
 .app-toast-content{ flex: 1 1 auto; min-width: 0; }
 .app-toast-title{ font-weight: 750; letter-spacing: -.01em; line-height: 1.1; margin-top: 2px; }
-.app-toast-body{ margin-top: 4px; color: var(--muted); font-size: .93rem; line-height: 1.25; word-break: break-word; }
+.app-toast-body{
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: .93rem;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+@media (max-width:576px){
+    .app-toast-body{ font-size: .95rem; }
+}
 
 .app-toast-close{ opacity: .75; margin-top: 2px; }
 .app-toast-close:hover{ opacity: 1; }
@@ -198,7 +237,6 @@ body{
     border-radius: 999px;
 }
 
-
 @keyframes toastProgress{ to { transform: scaleX(1); } }
 
 /* Variants via data-variant */
@@ -216,3 +254,14 @@ body{
 
 .toast.app-toast[data-variant="info"] .app-toast-icon{ background: rgba(84,156,255,.14); }
 .toast.app-toast[data-variant="info"] .app-toast-progress::before{ background: rgba(84,156,255,.95); }
+
+/* ===== Bootstrap toast compatibility (si usas .toast-body y .btn-close) ===== */
+.toast .toast-body{
+    padding: 12px 14px;
+    font-weight: 650;
+}
+.toast .btn-close{
+    filter: none;
+    opacity: .7;
+}
+.toast .btn-close:hover{ opacity: 1; }

@@ -1,3 +1,5 @@
+"use strict";
+
 const express = require("express");
 const QRCode = require("qrcode");
 const PDFDocument = require("pdfkit");
@@ -105,6 +107,15 @@ router.get("/ticket/:code", requireDb, async (req, res) => {
 
     if (!row) return res.status(404).send("Ticket no encontrado.");
 
+    // ✅ If passengers were not captured, I show placeholders: Pasajero 1..N
+    if (String(row.type || "").toUpperCase() === "PASSENGER") {
+        const hasNames = String(row.passenger_names || "").trim();
+        if (!hasNames) {
+            const n = Math.max(1, Number(row.seats || 1));
+            row.passenger_names = Array.from({ length: n }, (_, i) => `Pasajero ${i + 1}`).join(", ");
+        }
+    }
+
     const baseUrl = buildBaseUrl(req);
     const url = `${baseUrl}/ticket/${row.code}`;
     const folio = folioFrom(row.trip_date, row.reservation_id);
@@ -131,6 +142,7 @@ router.get("/ticket/:code", requireDb, async (req, res) => {
    - NO header frame
    - bigger logo
    - smaller "TICKET PAGADO" + smaller business lines + smaller KV
+   - ✅ If passengers were not captured, I print Pasajero 1..N
 ----------------------------- */
 router.get("/ticket/:code/pdf", requireDb, async (req, res) => {
     const { code } = req.params;
@@ -247,10 +259,10 @@ router.get("/ticket/:code/pdf", requireDb, async (req, res) => {
             .map((p) => String(p.passenger_name || "").trim())
             .filter(Boolean);
 
+        // ✅ If no passengers were captured, I print generic labels: Pasajero 1..N
         if (passengerNames.length === 0) {
             const n = Math.max(1, Number(row.seats || 1));
-            const base = String(row.customer_name || "Pasajero").trim() || "Pasajero";
-            passengerNames = Array.from({ length: n }, (_, i) => (n > 1 ? `${base} #${i + 1}` : base));
+            passengerNames = Array.from({ length: n }, (_, i) => `Pasajero ${i + 1}`);
         }
     } else {
         passengerNames = [null];
@@ -401,14 +413,14 @@ router.get("/ticket/:code/pdf", requireDb, async (req, res) => {
 
         doc.font("Helvetica-Bold").fontSize(fs);
 
-        // ✅ shrink-to-fit para que no haga wrap (y el alto no cambie)
+        // I shrink-to-fit so it never wraps (height stays stable).
         const maxTextW = chipW - padX * 2;
         while (fs > 6.4 && doc.widthOfString(text) > maxTextW) {
             fs -= 0.2;
             doc.fontSize(fs);
         }
 
-        // ✅ altura real de UNA línea en PDFKit (más consistente que heightOfString)
+        // I use single-line height for consistent vertical centering.
         const lineH = doc.currentLineHeight(true);
         const chipH = lineH + padY * 2;
 
@@ -419,8 +431,8 @@ router.get("/ticket/:code/pdf", requireDb, async (req, res) => {
         doc.fillColor("#000");
         doc.roundedRect(chipX, chipY, chipW, chipH, 2.2).fill();
 
-        // ✅ centrado vertical REAL (+ un “nudging” óptico mínimo)
-        const optical = mmToPt(0.55); // prueba 0.00 a 0.20 si lo quieres perfecto
+        // Real vertical center (+ tiny optical nudge)
+        const optical = mmToPt(0.55);
         const textY = chipY + (chipH - lineH) / 2 + optical;
 
         doc.fillColor("#fff");

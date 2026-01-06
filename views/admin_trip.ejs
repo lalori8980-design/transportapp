@@ -5,182 +5,235 @@
     <title>Salida</title>
 
     <style>
-        .page-title {
-            letter-spacing: -.02em;
-            font-weight: 800; /* menos pesado */
-            margin: 0;
+        .page-title{ letter-spacing:-.02em; font-weight:800; margin:0; }
+
+        .pill{
+            display:inline-flex; align-items:center; gap:.45rem;
+            padding:.42rem .7rem;
+            border-radius:999px;
+            border:1px solid var(--border);
+            background:var(--chip-bg);
+            color:var(--chip-text);
+            font-weight:700;
+            font-size:.9rem;
+            white-space:nowrap;
         }
 
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            gap: .45rem;
-            padding: .42rem .7rem;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--chip-bg);
-            color: var(--chip-text);
-            font-weight: 700; /* menos pesado */
-            font-size: .9rem;
-            white-space: nowrap;
+        .trip-card{
+            background:var(--card);
+            border:1px solid var(--border);
+            box-shadow:var(--shadow);
+            border-radius:20px;
+            overflow:hidden;
+        }
+        .trip-card .top{ padding:16px 16px 12px; }
+        .trip-card .bottom{
+            padding:12px 16px 16px;
+            border-top:1px solid var(--border);
+            background:color-mix(in srgb, var(--card) 88%, transparent);
         }
 
-        .trip-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            border-radius: 20px;
-            overflow: hidden;
+        .progress-soft{
+            height:10px; border-radius:999px;
+            background:color-mix(in srgb, var(--muted) 18%, transparent);
+            overflow:hidden; border:1px solid var(--border);
+        }
+        .progress-soft > span{
+            display:block; height:100%;
+            width:var(--w,0%);
+            background:linear-gradient(90deg, var(--wine), var(--wine-2));
+            border-radius:999px;
         }
 
-        .trip-card .top {
-            padding: 16px 16px 12px;
+        .card-soft{
+            background:var(--card);
+            border:1px solid var(--border);
+            box-shadow:var(--shadow);
+            border-radius:20px;
+            overflow:hidden;
         }
 
-        .trip-card .bottom {
-            padding: 12px 16px 16px;
-            border-top: 1px solid var(--border);
-            background: color-mix(in srgb, var(--card) 88%, transparent);
-        }
+        .table-wrap-pad{ padding:10px 12px; }
 
-        .progress-soft {
-            height: 10px;
-            border-radius: 999px;
-            background: color-mix(in srgb, var(--muted) 18%, transparent);
-            overflow: hidden;
-            border: 1px solid var(--border);
+        .table-pro{ --bs-table-bg:transparent; border-color:var(--border); }
+        .table-pro thead th{
+            font-size:.85rem; color:var(--muted);
+            font-weight:700;
+            border-bottom:1px solid var(--border);
+            white-space:nowrap;
         }
-
-        .progress-soft > span {
-            display: block;
-            height: 100%;
-            width: var(--w, 0%);
-            background: linear-gradient(90deg, var(--wine), var(--wine-2));
-            border-radius: 999px;
+        .table-pro td{
+            vertical-align:middle;
+            border-bottom:1px solid var(--border);
+            color:var(--text);
         }
-
-        /* ✅ padding general alrededor de la tabla para que no quede pegada al borde */
-        .table-wrap-pad {
-            padding: 10px 12px;
+        .table-pro thead th, .table-pro tbody td{
+            padding:.75rem .9rem !important;
         }
-
-        .table-pro {
-            --bs-table-bg: transparent;
-            border-color: var(--border);
-        }
-
-        .table-pro thead th {
-            font-size: .85rem;
-            color: var(--muted);
-            font-weight: 700;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        .table-pro td {
-            vertical-align: middle;
-            border-bottom: 1px solid var(--border);
-            color: var(--text);
-        }
-
-        /* ✅ más aire dentro de celdas */
-        .table-pro thead th,
-        .table-pro tbody td {
-            padding: .75rem .9rem !important;
-        }
-
-        /* móvil: un poco menos */
-        @media (max-width: 576px) {
-            .table-pro thead th,
-            .table-pro tbody td {
-                padding: .65rem .7rem !important;
+        @media (max-width: 576px){
+            .table-pro thead th, .table-pro tbody td{
+                padding:.65rem .7rem !important;
             }
         }
+        .table-pro thead th:first-child, .table-pro tbody td:first-child{ padding-left:1.1rem !important; }
+        .table-pro thead th:last-child,  .table-pro tbody td:last-child{  padding-right:1.1rem !important; }
 
-        /* un poquito más en bordes izquierdo/derecho */
-        .table-pro thead th:first-child,
-        .table-pro tbody td:first-child {
-            padding-left: 1.1rem !important;
+        .td-wrap{ max-width:360px; word-break:break-word; }
+
+        .badge-soft{
+            border:1px solid var(--border);
+            padding:.33rem .55rem;
+            border-radius:999px;
+            font-weight:700;
+            font-size:.82rem;
+            display:inline-flex;
+            align-items:center;
+            gap:.4rem;
+            white-space:nowrap;
+        }
+        .badge-paid{ background:rgba(16,216,143,.12); color:color-mix(in srgb, #10D88F 70%, var(--text)); }
+        .badge-pending{ background:rgba(241,220,33,.14); color:color-mix(in srgb, #f1dc21 60%, var(--text)); }
+        .badge-cancel{ background:rgba(148,163,184,.18); color:var(--muted); }
+
+        .btn-xs{
+            padding:.35rem .55rem;
+            border-radius:12px;
+            font-weight:700;
+            font-size:.82rem;
+            line-height:1.1;
+            display:inline-flex;
+            align-items:center;
+            gap:.35rem;
         }
 
-        .table-pro thead th:last-child,
-        .table-pro tbody td:last-child {
-            padding-right: 1.1rem !important;
+        .btn-ghost{
+            border:1px solid var(--border);
+            background:transparent;
+            color:var(--text);
+        }
+        .btn-ghost:hover{
+            border-color:color-mix(in srgb, var(--wine) 40%, var(--border));
+            background:color-mix(in srgb, var(--card) 70%, transparent);
+            color:var(--text);
         }
 
-        .td-wrap {
-            max-width: 360px;
-            word-break: break-word;
+        .btn-wa{ background:#25D366; border-color:#25D366; color:#fff; }
+        .btn-wa:hover{ background:#1fb85a; border-color:#1fb85a; color:#fff; }
+
+        .btn-pdf{
+            border:1px solid color-mix(in srgb, var(--wine) 40%, var(--border));
+            background:color-mix(in srgb, var(--wine) 12%, transparent);
+            color:var(--text);
+        }
+        .btn-pdf:hover{
+            border-color:var(--wine);
+            background:color-mix(in srgb, var(--wine) 18%, transparent);
+            color:var(--text);
         }
 
-        .badge-soft {
-            border: 1px solid var(--border);
-            padding: .33rem .55rem;
-            border-radius: 999px;
-            font-weight: 700; /* menos pesado */
-            font-size: .82rem;
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-            white-space: nowrap;
+        .actions{
+            display:flex;
+            justify-content:flex-end;
+            gap:.4rem;
+            flex-wrap:wrap;
         }
 
-        .badge-paid {
-            background: rgba(16, 216, 143, .12);
-            color: color-mix(in srgb, #10D88F 70%, var(--text));
-        }
+        .subtle{ color:var(--muted); }
+        .table-pro tbody tr:hover{ background:color-mix(in srgb, var(--card) 80%, var(--wine) 4%); }
 
-        .badge-pending {
-            background: rgba(241, 220, 33, .14);
-            color: color-mix(in srgb, #f1dc21 60%, var(--text));
+        .ticket-code{
+            font-weight:800;
+            letter-spacing:.02em;
+            color:var(--wine);
+            text-decoration:none;
         }
+        .ticket-code:hover{ text-decoration:underline; }
 
-        .badge-cancel {
-            background: rgba(148, 163, 184, .18);
-            color: var(--muted);
-        }
+        /* =========================================================
+           ✅ MOBILE UPGRADE (SIN romper desktop)
+           - usamos 2 rows: .tr-desktop y .tr-mobile
+        ========================================================= */
+        .tr-mobile{ display:none; }  /* desktop: escondo mobile row */
 
-        .btn-xs {
-            padding: .35rem .55rem;
-            border-radius: 12px;
-            font-weight: 700; /* menos pesado */
-            font-size: .82rem;
-        }
+        @media (max-width: 576px){
+            /* navbar más compacto */
+            .app-navbar .navbar-brand .fw-bold{ font-size: .95rem; }
+            .theme-btn{ padding:.35rem .55rem; border-radius:12px; }
 
-        .btn-ghost {
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text);
-        }
+            /* header de salida */
+            .trip-card .top{ padding:14px 14px 10px; }
+            .trip-card .bottom{ padding:10px 14px 14px; }
+            .pill{ font-size:.88rem; }
+            .page-title{ font-size:1.15rem; line-height:1.2; }
+            .trip-card .top .text-end{ text-align:left !important; }
 
-        .btn-ghost:hover {
-            border-color: color-mix(in srgb, var(--wine) 40%, var(--border));
-            background: color-mix(in srgb, var(--card) 70%, transparent);
-            color: var(--text);
-        }
+            /* en mobile: oculto fila desktop y muestro fila mobile */
+            .tr-desktop{ display:none; }
+            .tr-mobile{ display:table-row; }
 
-        .btn-wa {
-            background: #25D366;
-            border-color: #25D366;
-            color: #fff;
-        }
+            /* convierto el TD de mobile a “card” */
+            .tr-mobile td{
+                padding:0 !important;
+                border:0 !important;
+            }
+            .m-card{
+                background:var(--card);
+                border:1px solid var(--border);
+                border-radius:16px;
+                box-shadow:var(--shadow);
+                overflow:hidden;
+                margin:10px 0;
+                padding:10px 12px;
+            }
 
-        .btn-wa:hover {
-            background: #1fb85a;
-            border-color: #1fb85a;
-            color: #fff;
-        }
+            .m-row-top{
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:10px;
+            }
+            .m-name{
+                font-weight:800;
+                font-size:.98rem;
+                line-height:1.2;
+            }
+            .m-meta{
+                color:var(--muted);
+                font-size:.85rem;
+                margin-top:2px;
+            }
 
-        .actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: .4rem;
-            flex-wrap: wrap;
-        }
+            .m-divider{
+                border-top:1px dashed color-mix(in srgb, var(--border) 75%, transparent);
+                margin:8px 0;
+            }
 
-        /* opcional: hover suave (se ve más moderno) */
-        .table-pro tbody tr:hover {
-            background: color-mix(in srgb, var(--card) 80%, var(--wine) 4%);
+            .m-detail{ color:var(--text); font-size:.9rem; }
+            .m-detail .subtle{ font-size:.85rem; }
+
+            .m-ticket-row{
+                display:flex;
+                gap:8px;
+                flex-wrap:wrap;
+                align-items:center;
+            }
+            .m-ticket-row .btn-wa{ width:100%; justify-content:center; }
+
+            .actions{
+                justify-content:flex-start;
+                display:grid;
+                grid-template-columns: 1fr 1fr;
+                gap:8px;
+            }
+            .actions > *{ width:100%; }
+            .btn-xs{
+                width:100%;
+                justify-content:center;
+                padding:.52rem .6rem;
+                border-radius:14px;
+            }
+
+            .table-wrap-pad{ padding: 6px 8px; }
         }
     </style>
 </head>
@@ -206,11 +259,9 @@
 </nav>
 
 <main class="container py-4">
-
     <%
     const isActive = (x) => x.status !== 'CANCELLED';
 
-    // Usa passenger_count (del SQL) como fuente principal
     const countPassengers = (x) => {
         const byCount = Number(x.passenger_count || 0);
         const seats = Number(x.seats || 0);
@@ -221,17 +272,13 @@
             .filter(x => x.type === 'PASSENGER' && isActive(x))
             .reduce((acc, x) => acc + countPassengers(x), 0);
 
-    // ✅ Cap máximo 6 (aunque DB traiga otro valor)
     const capRaw = Number(trip.capacity_passengers || 0);
     const cap = Math.min(6, Math.max(0, capRaw));
-
-    // ✅ (Recomendado) por UI: no muestres más de 6 usados
     const used = Math.min(usedRaw, cap);
 
     const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
     const libres = Math.max(0, cap - used);
 
-    // Paquetes: en tu DB seats=0 para PACKAGE, entonces cuenta 1 por registro
     const mandados = (reservations || [])
             .filter(x => x.type === 'PACKAGE' && isActive(x))
             .reduce((acc, x) => acc + (Number(x.seats || 0) || 1), 0);
@@ -243,8 +290,8 @@
                 <div>
                     <div class="pill">🚌 Salida</div>
                     <h1 class="h3 page-title mt-2">
-                        <%= directionLabel(trip.direction) %> — <span
-                                style="color: var(--wine);"><%= trip.depart_time %></span>
+                        <%= directionLabel(trip.direction) %> —
+                        <span style="color: var(--wine);"><%= trip.depart_time %></span>
                     </h1>
                     <div class="subtle">Fecha: <%= trip.trip_date %></div>
                 </div>
@@ -265,15 +312,13 @@
                     <span>Ocupación</span>
                     <span><%= pct %>%</span>
                 </div>
-                <div class="progress-soft" style="--w:<%= pct %>%">
-                    <span></span>
-                </div>
+                <div class="progress-soft" style="--w:<%= pct %>%"><span></span></div>
             </div>
         </div>
 
         <div class="bottom">
             <div class="subtle small">
-                Marcar pagos, enviar ticket por WhatsApp y cancelar reservaciones.
+                Marcar pagos, abrir ticket, descargar PDF, enviar por WhatsApp y cancelar reservaciones.
             </div>
         </div>
     </div>
@@ -305,9 +350,18 @@
                     <% } %>
 
                     <% reservations.forEach(r => { %>
-                        <tr>
-                            <td><%= r.customer_name %></td>
+                        <%
+                            const shown = (Number(r.passenger_count || 0) || Number(r.seats || 0) || 1);
+                            const rawNames = String(r.passenger_names || '').trim();
+                            const displayNames = rawNames ? rawNames : Array.from({ length: shown }, (_, i) => `Pasajero ${i + 1}`).join(', ');
+                            const digits = (r.phone || '').replace(/\D/g, '');
+                        %>
 
+                        <!-- =========================
+                             DESKTOP ROW (normal)
+                        ========================== -->
+                        <tr class="tr-desktop">
+                            <td><%= r.customer_name %></td>
                             <td class="subtle"><%= r.phone %></td>
 
                             <td>
@@ -319,17 +373,11 @@
                             <td class="td-wrap">
                                 <% if (r.type === "PASSENGER") { %>
                                     <div class="small">
-                                        <%
-                                            const shown = (Number(r.passenger_count || 0) || Number(r.seats || 0) || 1);
-                                        %>
                                         <div class="subtle"><%= shown %> pasajero(s)</div>
-
-                                        <div class="subtle"><%= r.passenger_names || "-" %></div>
+                                        <div class="subtle"><%= displayNames %></div>
                                     </div>
                                 <% } else { %>
-                                    <div class="small subtle">
-                                        <div><%= r.package_details || "-" %></div>
-                                    </div>
+                                    <div class="small subtle"><div><%= r.package_details || "-" %></div></div>
                                 <% } %>
                             </td>
 
@@ -343,30 +391,26 @@
                                 <% } else if (r.status === 'PAY_AT_BOARDING') { %>
                                     <span class="badge-soft"
                                           style="background: rgba(59,130,246,.12); color: color-mix(in srgb, #3b82f6 70%, var(--text));">
-                                            💵 Pagar en taquilla
+                                        💵 Pagar en taquilla
                                     </span>
                                 <% } else { %>
                                     <span class="badge-soft" style="background: transparent; color: var(--muted);">
                                         <%= r.status %>
                                     </span>
                                 <% } %>
-
                             </td>
 
                             <td>
                                 <% if (r.ticket_code) { %>
-                                    <a href="/ticket/<%= r.ticket_code %>" style="color: var(--wine);">
-                                        <%= r.ticket_code %>
-                                    </a>
+                                    <a class="ticket-code" href="/ticket/<%= r.ticket_code %>" target="_blank"><%= r.ticket_code %></a>
 
-                                    <% const digits = (r.phone || '').replace(/\D/g, ''); %>
                                     <% if (digits.length >= 10) { %>
                                         <div class="mt-2">
                                             <a class="btn btn-wa btn-xs" target="_blank"
                                                href="https://wa.me/52<%= digits %>?text=<%= encodeURIComponent(
                                                        'Tu ticket está listo\n' + (baseUrl || 'http://localhost:3000') + '/ticket/' + r.ticket_code
                                                ) %>">
-                                                WhatsApp
+                                                💬 WhatsApp
                                             </a>
                                         </div>
                                     <% } %>
@@ -378,33 +422,127 @@
                             <td class="text-end">
                                 <div class="actions">
                                     <% if (!r.ticket_code && r.status !== 'CANCELLED') { %>
-                                        <form method="POST" action="/admin/reservation/<%= r.id %>/mark-paid"
-                                              class="m-0">
+                                        <form method="POST" action="/admin/reservation/<%= r.id %>/mark-paid" class="m-0">
                                             <input type="hidden" name="method" value="CASH">
-                                            <button class="btn btn-wine btn-xs" type="submit">Efectivo</button>
+                                            <button class="btn btn-wine btn-xs" type="submit">💵 Efectivo</button>
                                         </form>
 
-                                        <form method="POST" action="/admin/reservation/<%= r.id %>/mark-paid"
-                                              class="m-0">
+                                        <form method="POST" action="/admin/reservation/<%= r.id %>/mark-paid" class="m-0">
                                             <input type="hidden" name="method" value="TRANSFER">
-                                            <button class="btn btn-ghost btn-xs" type="submit">Transfer</button>
+                                            <button class="btn btn-ghost btn-xs" type="submit">🏦 Transfer</button>
                                         </form>
                                     <% } %>
 
                                     <% if (r.ticket_code) { %>
-                                        <a class="btn btn-ghost btn-xs" href="/ticket/<%= r.ticket_code %>">Ver</a>
+                                        <a class="btn btn-ghost btn-xs" href="/ticket/<%= r.ticket_code %>" target="_blank">👁️ Ver</a>
+                                        <a class="btn btn-pdf btn-xs" href="/ticket/<%= r.ticket_code %>/pdf" target="_blank" rel="noopener">📄 Ticket</a>
                                     <% } %>
 
                                     <% if (r.status !== 'CANCELLED') { %>
                                         <form method="POST" action="/admin/reservation/<%= r.id %>/cancel" class="m-0"
                                               onsubmit="return confirm('¿Cancelar esta reserva? Esto libera cupo.')">
-                                            <button class="btn btn-outline-danger btn-xs" type="submit">Cancelar
-                                            </button>
+                                            <button class="btn btn-outline-danger btn-xs" type="submit">⛔ Cancelar</button>
                                         </form>
                                     <% } %>
                                 </div>
                             </td>
                         </tr>
+
+                        <!-- =========================
+                             MOBILE ROW (card)
+                             1 solo TD (colspan=7)
+                        ========================== -->
+                        <tr class="tr-mobile">
+                            <td colspan="7">
+                                <div class="m-card">
+                                    <div class="m-row-top">
+                                        <div>
+                                            <div class="m-name"><%= r.customer_name %></div>
+                                            <div class="m-meta">
+                                                <%= r.phone %> · <%= r.type === "PASSENGER" ? "🧍‍♂️ Pasajero" : "📦 Paquetería" %>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <% if (r.status === 'PAID') { %>
+                                                <span class="badge-soft badge-paid">✅ Pagado</span>
+                                            <% } else if (r.status === 'CANCELLED') { %>
+                                                <span class="badge-soft badge-cancel">⛔ Cancelado</span>
+                                            <% } else if (r.status === 'PENDING_PAYMENT') { %>
+                                                <span class="badge-soft badge-pending">⏳ Pendiente</span>
+                                            <% } else if (r.status === 'PAY_AT_BOARDING') { %>
+                                                <span class="badge-soft"
+                                                      style="background: rgba(59,130,246,.12); color: color-mix(in srgb, #3b82f6 70%, var(--text));">
+                                                    💵 Taquilla
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge-soft" style="background: transparent; color: var(--muted);">
+                                                    <%= r.status %>
+                                                </span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+
+                                    <div class="m-divider"></div>
+
+                                    <div class="m-detail">
+                                        <% if (r.type === "PASSENGER") { %>
+                                            <div class="subtle"><%= shown %> pasajero(s)</div>
+                                            <div class="subtle"><%= displayNames %></div>
+                                        <% } else { %>
+                                            <div class="subtle"><%= r.package_details || "-" %></div>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="m-divider"></div>
+
+                                    <div class="m-ticket-row">
+                                        <% if (r.ticket_code) { %>
+                                            <a class="ticket-code" href="/ticket/<%= r.ticket_code %>" target="_blank"><%= r.ticket_code %></a>
+                                            <a class="btn btn-pdf btn-xs" href="/ticket/<%= r.ticket_code %>/pdf" target="_blank" rel="noopener">📄 PDF</a>
+
+                                            <% if (digits.length >= 10) { %>
+                                                <a class="btn btn-wa btn-xs" target="_blank"
+                                                   href="https://wa.me/52<%= digits %>?text=<%= encodeURIComponent(
+                                                           'Tu ticket está listo\n' + (baseUrl || 'http://localhost:3000') + '/ticket/' + r.ticket_code
+                                                   ) %>">💬 WhatsApp</a>
+                                            <% } %>
+                                        <% } else { %>
+                                            <span class="subtle">Sin ticket</span>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="m-divider"></div>
+
+                                    <div class="actions">
+                                        <% if (!r.ticket_code && r.status !== 'CANCELLED') { %>
+                                            <form method="POST" action="/admin/reservation/<%= r.id %>/mark-paid" class="m-0">
+                                                <input type="hidden" name="method" value="CASH">
+                                                <button class="btn btn-wine btn-xs" type="submit">💵 Efectivo</button>
+                                            </form>
+
+                                            <form method="POST" action="/admin/reservation/<%= r.id %>/mark-paid" class="m-0">
+                                                <input type="hidden" name="method" value="TRANSFER">
+                                                <button class="btn btn-ghost btn-xs" type="submit">🏦 Transfer</button>
+                                            </form>
+                                        <% } %>
+
+                                        <% if (r.ticket_code) { %>
+                                            <a class="btn btn-ghost btn-xs" href="/ticket/<%= r.ticket_code %>" target="_blank">👁️ Ver</a>
+                                            <a class="btn btn-pdf btn-xs" href="/ticket/<%= r.ticket_code %>/pdf" target="_blank" rel="noopener">📄 PDF</a>
+                                        <% } %>
+
+                                        <% if (r.status !== 'CANCELLED') { %>
+                                            <form method="POST" action="/admin/reservation/<%= r.id %>/cancel" class="m-0"
+                                                  onsubmit="return confirm('¿Cancelar esta reserva? Esto libera cupo.')">
+                                                <button class="btn btn-outline-danger btn-xs" type="submit">⛔ Cancelar</button>
+                                            </form>
+                                        <% } %>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
                     <% }) %>
                     </tbody>
                 </table>

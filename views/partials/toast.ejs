@@ -1,5 +1,12 @@
-<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080;">
-    <div id="appToast" class="toast app-toast" role="alert" aria-live="polite" aria-atomic="true" data-variant="dark">
+<!-- partials/toast.ejs -->
+<div class="toast-container position-fixed top-0 end-0 p-3 app-toast-host" style="z-index:1080;">
+    <div id="appToast"
+         class="toast app-toast"
+         role="alert"
+         aria-live="polite"
+         aria-atomic="true"
+         data-variant="dark">
+
         <div class="app-toast-inner">
             <div class="app-toast-icon" id="appToastIcon" aria-hidden="true">✅</div>
 
@@ -8,7 +15,10 @@
                 <div class="app-toast-body" id="appToastMsg">Listo</div>
             </div>
 
-            <button type="button" class="btn-close app-toast-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            <button type="button"
+                    class="btn-close app-toast-close"
+                    data-bs-dismiss="toast"
+                    aria-label="Cerrar"></button>
         </div>
 
         <div class="app-toast-progress" aria-hidden="true"></div>

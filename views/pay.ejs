@@ -12,6 +12,7 @@
             border-radius: 22px;
             overflow: hidden;
         }
+
         .top{
             padding: 18px 18px 14px;
             background:
@@ -19,12 +20,15 @@
                     radial-gradient(800px 420px at 90% 10%, rgba(106,15,31,.10), transparent 60%);
             border-bottom: 1px solid var(--border);
         }
+
         .body{ padding: 18px; }
+
         .title{
             letter-spacing: -.02em;
-            font-weight: 650;
+            font-weight: 750;
             margin: 0;
         }
+
         .meta{ color: var(--muted); font-size: .95rem; }
 
         .pill{
@@ -33,30 +37,54 @@
             border:1px solid var(--border);
             background: var(--chip-bg);
             color: var(--chip-text);
-            font-weight:600; font-size:.9rem;
+            font-weight:650; font-size:.9rem;
             white-space:nowrap;
         }
 
-        .kv{
-            list-style:none; padding:0; margin:0;
-            display:grid; gap:.55rem;
+        .folio-wrap{
+            display:flex;
+            align-items:stretch;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-top:10px;
         }
-        .kv li{
-            display:flex; justify-content:space-between; gap:12px;
-            padding:.6rem .75rem;
-            border:1px solid var(--border);
-            border-radius:14px;
-            background: color-mix(in srgb, var(--card) 86%, transparent);
+
+        .folio-box{
+            flex: 1 1 320px;
+            border:1px solid color-mix(in srgb, var(--wine) 28%, var(--border));
+            background: color-mix(in srgb, var(--wine) 8%, var(--card));
+            border-radius: 16px;
+            padding: 12px 14px;
+            min-width: 240px;
         }
-        .kv .k{ color: var(--muted); font-weight:500; }
-        .kv .v{ color: var(--text); font-weight:500; text-align:right; }
+
+        .folio-label{
+            color: var(--muted);
+            font-size: .92rem;
+            margin-bottom: 4px;
+        }
+
+        .mono{
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: .02em;
+            color: var(--text);
+            word-break: break-word;
+        }
 
         .btn-xs{
-            padding:.5rem .8rem;
-            border-radius:12px;
-            font-weight:600;
+            padding:.55rem .85rem;
+            border-radius:14px;
+            font-weight:700;
             font-size:.95rem;
+            display:inline-flex;
+            align-items:center;
+            gap:.45rem;
+            line-height:1.1;
+            white-space:nowrap;
         }
+
         .btn-ghost{
             border:1px solid var(--border);
             background:transparent;
@@ -66,6 +94,66 @@
             border-color: color-mix(in srgb, var(--wine) 40%, var(--border));
             background: color-mix(in srgb, var(--card) 70%, transparent);
             color: var(--text);
+        }
+
+        .btn-wa{
+            background:#25D366;
+            border-color:#25D366;
+            color:#fff;
+        }
+        .btn-wa:hover{
+            background:#1fb85a;
+            border-color:#1fb85a;
+            color:#fff;
+        }
+
+        .btn-pdf{
+            border:1px solid color-mix(in srgb, var(--wine) 40%, var(--border));
+            background:color-mix(in srgb, var(--wine) 12%, transparent);
+            color:var(--text);
+        }
+        .btn-pdf:hover{
+            border-color:var(--wine);
+            background:color-mix(in srgb, var(--wine) 18%, transparent);
+            color:var(--text);
+        }
+
+        .btn-group-top{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:flex-start;
+            justify-content:flex-end;
+        }
+
+        /* Key/Value */
+        .kv{
+            list-style:none; padding:0; margin:0;
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap:.65rem;
+        }
+        .kv li{
+            display:flex;
+            gap:12px;
+            padding:.7rem .8rem;
+            border:1px solid var(--border);
+            border-radius:14px;
+            background: color-mix(in srgb, var(--card) 86%, transparent);
+            align-items:flex-start;
+        }
+        .kv .k{
+            color: var(--muted);
+            font-weight:650;
+            font-size:.92rem;
+            min-width: 120px;
+        }
+        .kv .v{
+            color: var(--text);
+            font-weight:650;
+            text-align:right;
+            flex:1;
+            word-break: break-word;
         }
 
         .note{
@@ -78,17 +166,51 @@
 
         .note-strong{
             border:1px solid color-mix(in srgb, var(--wine) 35%, var(--border));
-            background: color-mix(in srgb, var(--card) 86%, transparent);
+            background: color-mix(in srgb, var(--wine) 6%, var(--card));
             border-radius: 16px;
             padding: 12px 14px;
             color: var(--text);
         }
 
-        .mono{
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-            font-size: .95rem;
-            color: var(--text);
-            word-break: break-word;
+        .bottom-actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        /* =========================
+           ✅ MOBILE polish
+        ========================= */
+        @media (max-width: 576px){
+            .top{ padding: 14px 14px 12px; }
+            .body{ padding: 14px; }
+
+            .title{ font-size: 1.35rem; }
+            .meta{ font-size: .92rem; }
+
+            .btn-group-top{
+                width:100%;
+                justify-content:flex-start;
+            }
+            .btn-xs{
+                width:100%;
+                justify-content:center;
+                padding:.68rem .9rem;
+                border-radius: 16px;
+            }
+
+            .folio-box{ flex: 1 1 100%; }
+            .folio-wrap{ gap:10px; }
+
+            .kv{ grid-template-columns: 1fr; }
+            .kv li{
+                flex-direction:column;
+                gap:6px;
+            }
+            .kv .k{ min-width: 0; }
+            .kv .v{ text-align:left; }
+
+            .bottom-actions .btn-xs{ width:100%; }
         }
     </style>
 </head>
@@ -121,7 +243,8 @@
     const isPendingOnline = isOnline && (status === "PENDING_PAYMENT" || !status);
     const isPaid = status === "PAID";
 
-    // I keep a safe fallback in case old rows don't have these columns yet.
+    const ticketCode = (r.ticket_code || "").trim();
+
     const unit = Number(r.unit_price_mxn || 120);
     const seats = Number(r.seats || 0);
 
@@ -147,7 +270,6 @@
     }
 
     function statusText(){
-        // I map status if present; otherwise I fallback to the old text.
         if (!status) return "Pendiente de confirmación";
         if (status === "PAY_AT_BOARDING") return "Pago en taquilla";
         if (status === "PENDING_PAYMENT") return "Pendiente de pago";
@@ -174,15 +296,30 @@
         <div class="top">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div>
-                    <div class="pill">Reserva creada</div>
+                    <div class="pill">✅ Reserva creada</div>
                     <h1 class="h3 title mt-2">Listo</h1>
-                    <div class="meta mt-1">Tu folio es:</div>
-                    <div class="mono mt-1" id="folioText"><%= folio %></div>
+                    <div class="meta mt-1">Guarda tu folio y envíalo por WhatsApp si necesitas confirmar rápido.</div>
                 </div>
 
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-ghost btn-xs" id="copyBtn">Copiar folio</button>
-                    <a class="btn btn-wine btn-xs" id="waBtn" target="_blank" href="#">Enviar por WhatsApp</a>
+                <div class="btn-group-top">
+                    <% if (isPaid && ticketCode) { %>
+                        <a class="btn btn-ghost btn-xs" href="/ticket/<%= ticketCode %>" target="_blank" rel="noopener">
+                            🎫 Ver ticket
+                        </a>
+                        <a class="btn btn-pdf btn-xs" href="/ticket/<%= ticketCode %>/pdf" target="_blank" rel="noopener">
+                            📄 PDF
+                        </a>
+                    <% } %>
+
+                    <button type="button" class="btn btn-ghost btn-xs" id="copyBtn">📋 Copiar folio</button>
+                    <a class="btn btn-wa btn-xs" id="waBtn" target="_blank" href="#">💬 Enviar por WhatsApp</a>
+                </div>
+            </div>
+
+            <div class="folio-wrap">
+                <div class="folio-box">
+                    <div class="folio-label">Tu folio</div>
+                    <div class="mono" id="folioText"><%= folio %></div>
                 </div>
             </div>
         </div>
@@ -191,12 +328,13 @@
 
             <% if (isPendingOnline) { %>
                 <div class="note-strong mb-3">
-                    <div class="fw-semibold">Pago en línea pendiente</div>
+                    <div class="fw-semibold">💳 Pago en línea pendiente</div>
                     <div class="mt-1" style="color: var(--muted);">
-                        Total a pagar: <span class="fw-semibold" style="color: var(--text);"><%= fmtMXN(total) %></span>
+                        Total a pagar:
+                        <span class="fw-semibold" style="color: var(--text);"><%= fmtMXN(total) %></span>
                     </div>
 
-                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                    <div class="mt-3 bottom-actions">
                         <a class="btn btn-wine btn-xs" href="/checkout/<%= r.id %>">Pagar ahora</a>
                         <a class="btn btn-ghost btn-xs" href="/reserve">Nueva reserva</a>
                     </div>
@@ -204,61 +342,47 @@
             <% } %>
 
             <ul class="kv mb-3">
-                <li>
-                    <span class="k">Tipo</span>
-                    <span class="v"><%= typeLabel() %></span>
-                </li>
+                <li><span class="k">Tipo</span><span class="v"><%= typeLabel() %></span></li>
 
                 <% if (isPassenger) { %>
-                    <li>
-                        <span class="k">Pasajeros</span>
-                        <span class="v"><%= Math.max(1, Number(r.seats || 1)) %></span>
-                    </li>
+                    <li><span class="k">Pasajeros</span><span class="v"><%= Math.max(1, Number(r.seats || 1)) %></span></li>
                 <% } %>
 
                 <% if (isPackage) { %>
-                    <li>
-                        <span class="k">Detalle</span>
-                        <span class="v"><%= (r.package_details || "-") %></span>
-                    </li>
+                    <li><span class="k">Detalle</span><span class="v"><%= (r.package_details || "-") %></span></li>
                 <% } %>
 
-                <li>
-                    <span class="k">Ruta</span>
-                    <span class="v"><%= r.direction === "VIC_TO_LLE" ? "Victoria - Llera" : "Llera - Victoria" %></span>
-                </li>
+                <li><span class="k">Ruta</span><span class="v"><%= r.direction === "VIC_TO_LLE" ? "Victoria - Llera" : "Llera - Victoria" %></span></li>
                 <li><span class="k">Fecha</span><span class="v"><%= r.trip_date %></span></li>
                 <li><span class="k">Hora</span><span class="v"><%= r.depart_time %></span></li>
                 <li><span class="k">Contacto</span><span class="v"><%= r.customer_name %></span></li>
                 <li><span class="k">Teléfono</span><span class="v" id="phoneText"><%= r.phone %></span></li>
-
-                <li>
-                    <span class="k">Método de pago</span>
-                    <span class="v"><%= paymentLabel() %></span>
-                </li>
+                <li><span class="k">Método de pago</span><span class="v"><%= paymentLabel() %></span></li>
 
                 <% if (payment === "TRANSFERENCIA" && r.transfer_ref) { %>
-                    <li>
-                        <span class="k">Referencia</span>
-                        <span class="v"><%= r.transfer_ref %></span>
-                    </li>
+                    <li><span class="k">Referencia</span><span class="v"><%= r.transfer_ref %></span></li>
                 <% } %>
 
-                <li>
-                    <span class="k">Total a pagar</span>
-                    <span class="v"><%= fmtMXN(total) %></span>
-                </li>
-
+                <li><span class="k">Total a pagar</span><span class="v"><%= fmtMXN(total) %></span></li>
                 <li><span class="k">Estado</span><span class="v"><%= statusText() %></span></li>
+
+                <% if (isPaid && ticketCode) { %>
+                    <li><span class="k">Ticket</span><span class="v"><%= ticketCode %></span></li>
+                <% } %>
             </ul>
 
             <div class="note">
                 <%= noteText() %>
             </div>
 
-            <div class="mt-3 d-flex gap-2 flex-wrap">
-                <a class="btn btn-ghost btn-xs" href="/reserve">Nueva reserva</a>
-                <a class="btn btn-ghost btn-xs" href="/">Volver al inicio</a>
+            <div class="mt-3 bottom-actions">
+                <% if (isPaid && ticketCode) { %>
+                    <a class="btn btn-ghost btn-xs" href="/ticket/<%= ticketCode %>" target="_blank" rel="noopener">🎫 Ver ticket</a>
+                    <a class="btn btn-pdf btn-xs" href="/ticket/<%= ticketCode %>/pdf" target="_blank" rel="noopener">📄 PDF</a>
+                <% } %>
+
+                <a class="btn btn-ghost btn-xs" href="/reserve">➕ Nueva reserva</a>
+                <a class="btn btn-ghost btn-xs" href="/">🏠 Volver al inicio</a>
             </div>
         </div>
     </div>
@@ -267,7 +391,6 @@
 
 <script src="/js/theme.js"></script>
 
-<!-- Datos del servidor en JSON -->
 <script type="application/json" id="reservationData">
 <%- JSON.stringify({
         folio,
@@ -286,6 +409,8 @@
         transfer_ref: r.transfer_ref || null,
         status: r.status || "",
 
+        ticket_code: r.ticket_code || "",
+
         unit_price_mxn: r.unit_price_mxn || 120,
         amount_total_mxn: r.amount_total_mxn || null
     }) %>
@@ -295,12 +420,10 @@
     const copyBtn = document.getElementById("copyBtn");
     const waBtn = document.getElementById("waBtn");
 
-    // Admin/service number (receiver of WhatsApp message).
     const adminWa = "8344756376";
 
     function digitsOnly(s){ return String(s || "").replace(/\D/g, ""); }
 
-    // I parse server data safely.
     let data = {};
     try {
         const raw = document.getElementById("reservationData")?.textContent || "{}";
@@ -349,7 +472,6 @@
     const seats = Number(data.seats || 0);
     const unit = Number(data.unit_price_mxn || 120);
 
-    // I fallback compute total if it was not stored yet.
     const total =
         (data.amount_total_mxn != null && data.amount_total_mxn !== "")
             ? Number(data.amount_total_mxn)
@@ -359,7 +481,6 @@
     const transferRef = data.transfer_ref ? String(data.transfer_ref) : "";
     const statusLabel = niceStatus(data.status);
 
-    // Client message, clean format.
     const lines = [
         "Hola, acabo de realizar una reserva y me gustaría que me ayuden a confirmarla.",
         "",
@@ -387,7 +508,6 @@
 
     const msg = lines.join("\n");
 
-    // WhatsApp link to admin.
     const adminDigits = digitsOnly(adminWa);
     if (adminDigits.length >= 10) {
         waBtn.href = `https://wa.me/52${adminDigits}?text=${encodeURIComponent(msg)}`;
@@ -396,12 +516,11 @@
         waBtn.setAttribute("aria-disabled","true");
     }
 
-    // Copy folio.
     copyBtn?.addEventListener("click", async () => {
         try{
             await navigator.clipboard.writeText(String(data.folio || ""));
             const old = copyBtn.textContent;
-            copyBtn.textContent = "Copiado";
+            copyBtn.textContent = "✅ Copiado";
             setTimeout(() => copyBtn.textContent = old, 1200);
         } catch {
             alert("No pude copiar. Selecciona el folio manualmente.");

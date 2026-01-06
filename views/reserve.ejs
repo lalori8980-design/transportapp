@@ -256,6 +256,37 @@
         }
 
         .is-invalid + .invalid-feedback{ display: block; }
+
+        /* Header de "Nombres de pasajeros" */
+        .names-head{
+            display:flex;
+            align-items:center;
+            gap: 1px;
+            flex-wrap: wrap;
+        }
+
+        /* Switch compacto (sin el “salto”/margen de Bootstrap) */
+        .names-toggle{
+            display:flex;
+            align-items:center;
+            gap: 10px;
+        }
+        .names-toggle .form-check-input{
+            float: none !important;
+        }
+        .names-toggle .form-check-label{
+            margin: 0;
+        }
+
+        /* En móvil se apila y queda más natural */
+        @media (max-width: 576px){
+            .names-head{
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+        }
+
     </style>
 
     <!-- ✅ Inyecto pricing sin romper el JS del editor -->
@@ -356,21 +387,14 @@
                 <div class="form-text subtle">Máximo 6 pasajeros por salida.</div>
             </div>
 
-            <!-- 6) Nombres -->
-            <div class="col-12" id="passengerNamesWrap">
-                <label class="form-label">Nombres de los pasajeros</label>
-                <div id="passengerNames" class="row g-2"></div>
-                <div class="form-text">
-                    El primer nombre se tomará como <span class="subtle">contacto</span>.
-                </div>
-            </div>
-
-            <!-- PAQUETERÍA: Nombre de contacto -->
-            <div class="col-md-6" id="packageContactWrap">
+            <!-- ✅ CONTACTO (SIEMPRE) -->
+            <div class="col-md-6" id="contactNameWrap">
                 <label class="form-label">Nombre de contacto</label>
-                <input id="package_contact_name" name="customer_name" class="form-control"
-                       placeholder="Ej: Juan Pérez"/>
-                <div class="form-text subtle">Solo aplica para paquetería.</div>
+                <input id="customer_name" name="customer_name" class="form-control" required
+                       placeholder="Ej: Juan Martínez"/>
+                <div class="form-text subtle">
+                    Usaremos este nombre para tu reserva y para contactarte.
+                </div>
             </div>
 
             <!-- Teléfono -->
@@ -379,6 +403,25 @@
                 <input id="phone" name="phone" class="form-control" required
                        inputmode="numeric" pattern="[0-9]{10}" placeholder="Ej: 8344756376"/>
                 <div class="invalid-feedback">Ingresa un teléfono válido (10 dígitos).</div>
+            </div>
+
+            <!-- ✅ PASAJEROS (OPCIONAL) -->
+            <div class="col-12" id="passengerNamesWrap">
+                <div class="form-check form-switch m-0 names-toggle" id="namesToggleWrap">
+                    <input class="form-check-input" type="checkbox" id="namesToggle">
+                    <label class="form-check-label subtle" for="namesToggle">Capturar nombres</label>
+                </div>
+
+                <div class="form-text subtle mt-1">
+                    Puedes omitir los nombres y solo usar el contacto.
+                </div>
+
+                <div id="passengerNamesBox" class="mt-2 d-none">
+                    <div id="passengerNames" class="row g-2"></div>
+                    <div class="form-text">
+                        Si activas esta opción, capturamos un nombre por asiento.
+                    </div>
+                </div>
             </div>
 
             <!-- MÉTODO DE PAGO -->
@@ -523,11 +566,13 @@
     const plusBtn = document.getElementById("plusBtn");
     const minusBtn = document.getElementById("minusBtn");
 
-    const passengerNamesWrap = document.getElementById("passengerNamesWrap");
-    const passengerNames = document.getElementById("passengerNames");
+    const customerName = document.getElementById("customer_name");
 
-    const packageContactWrap = document.getElementById("packageContactWrap");
-    const packageContactName = document.getElementById("package_contact_name");
+    const passengerNamesWrap = document.getElementById("passengerNamesWrap");
+    const passengerNamesBox = document.getElementById("passengerNamesBox");
+    const passengerNames = document.getElementById("passengerNames");
+    const namesToggleWrap = document.getElementById("namesToggleWrap");
+    const namesToggle = document.getElementById("namesToggle");
 
     const paymentMethod = document.getElementById("payment_method");
     const transferWrap = document.getElementById("transferWrap");
@@ -670,7 +715,6 @@
             }
 
             // ✅ Limpio URL (solo estética) sin recargar
-            // Deja /reserve?dir=VIC_TO_LLE&time=06:30
             if (dir || time || date) {
                 const clean = new URL(window.location.href);
 
@@ -681,7 +725,6 @@
                 if (date) clean.searchParams.set("date", date);
                 else clean.searchParams.delete("date");
 
-                // Quita variantes si existieran
                 clean.searchParams.delete("direction");
                 clean.searchParams.delete("depart_time");
                 clean.searchParams.delete("trip_date");
@@ -693,25 +736,36 @@
         }
     }
 
+    function namesEnabled(){
+        return !!namesToggle?.checked;
+    }
+
     function updateUIByType() {
         const isPassenger = typeSel.value === "PASSENGER";
 
         seatsWrap.style.display = isPassenger ? "" : "none";
-        passengerNamesWrap.style.display = isPassenger ? "" : "none";
 
-        packageContactWrap.style.display = isPassenger ? "none" : "";
+        // I show the "capture names" switch only for passengers.
+        namesToggleWrap.style.display = isPassenger ? "" : "none";
+
+        // I show/hide package detail.
         packageWrap.style.display = isPassenger ? "none" : "";
 
-        if (isPassenger) {
-            packageContactName.value = "";
-            packageDetails.value = "";
-            packageContactName.removeAttribute("required");
-        } else {
-            packageContactName.setAttribute("required", "required");
+        // I enforce package details only for packages.
+        if (!isPassenger) {
+            packageDetails.setAttribute("required", "required");
+
+            // I disable passenger names when switching to package.
+            if (namesToggle) namesToggle.checked = false;
             passengerNames.innerHTML = "";
+            passengerNamesBox.classList.add("d-none");
+        } else {
+            packageDetails.value = "";
+            packageDetails.removeAttribute("required");
         }
 
         updatePriceUI();
+        renderPassengerInputs();
     }
 
     function updateUIByPayment() {
@@ -728,7 +782,14 @@
         const seats = Number(seatsSel.value || 1);
 
         passengerNames.innerHTML = "";
-        if (!isPassenger) return;
+
+        // I only render passenger name inputs if the user explicitly wants them.
+        if (!isPassenger || !namesEnabled()) {
+            passengerNamesBox.classList.add("d-none");
+            return;
+        }
+
+        passengerNamesBox.classList.remove("d-none");
 
         for (let i = 1; i <= seats; i++) {
             const col = document.createElement("div");
@@ -873,6 +934,7 @@
         const seats = Number(seatsSel.value || 1);
 
         const totalText = priceTotal?.textContent || "";
+        const contact = (customerName?.value || "").trim();
 
         return [
             "Datos para transferencia (TransportApp)",
@@ -883,6 +945,7 @@
             "",
             "Datos de mi reserva",
             "-------------------",
+            `Contacto: ${contact || "-"}`,
             `Ruta: ${dir}`,
             `Fecha: ${date}`,
             `Hora: ${time}`,
@@ -988,8 +1051,11 @@
 
     typeSel.addEventListener("change", () => {
         updateUIByType();
-        renderPassengerInputs();
         loadAvailability();
+    });
+
+    namesToggle?.addEventListener("change", () => {
+        renderPassengerInputs();
     });
 
     plusBtn.addEventListener("click", () => {
