@@ -290,16 +290,74 @@ router.get(
 );
 
 /**
- * Availability por fecha/ruta
+ * Availability por fecha/ruta (oculta horarios pasados)
  */
+function todayISO_MTY() {
+    return new Date().toLocaleDateString("en-CA", {timeZone: "America/Monterrey"}); // YYYY-MM-DD
+}
+
+function nowHHMM_MTY() {
+    return new Date().toLocaleTimeString("en-GB", {
+        timeZone: "America/Monterrey",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    }); // HH:MM 24h
+}
+
+function toHHMM_24(t) {
+    const s = String(t || "").trim();
+
+    // "6:30 AM" / "06:30 PM"
+    const m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (m) {
+        let hh = Number(m[1] || 0);
+        const mm = String(m[2] || "00").padStart(2, "0");
+        const ap = String(m[3] || "").toUpperCase();
+
+        if (ap === "AM") {
+            if (hh === 12) hh = 0;
+        } else if (ap === "PM") {
+            if (hh !== 12) hh += 12;
+        }
+        return `${String(hh).padStart(2, "0")}:${mm}`;
+    }
+
+    // "6:30" / "06:30" / "06:30:00"
+    const parts = s.split(":");
+    if (parts.length >= 2) {
+        const hh = String(parts[0] || "0").padStart(2, "0");
+        const mm = String(parts[1] || "0").slice(0, 2).padStart(2, "0");
+        return `${hh}:${mm}`;
+    }
+
+    return s; // fallback
+}
+
 router.get(
     "/availability",
     requireDb,
     safe(async (req, res) => {
         const {date, direction} = req.query;
 
+        if (!date || !direction) {
+            return res.status(400).json({ok: false, message: "Faltan parámetros: date, direction"});
+        }
+
         // ✅ up to 6 (and allow 0 for PACKAGE)
         const seatsWanted = Math.max(0, Math.min(MAX_CAP, Number(req.query.seats || 1)));
+
+        // ✅ filtro de pasado (Monterrey)
+        const today = todayISO_MTY();
+        const nowHHMM = nowHHMM_MTY();
+
+        // si pidieron una fecha anterior, ya no muestro nada
+        // (YYYY-MM-DD compara bien como string)
+        if (String(date) < today) {
+            return res.json({date, direction, seatsWanted, results: []});
+        }
+
+        const isToday = String(date) === today;
 
         const conn = await pool.getConnection();
         try {
@@ -317,6 +375,12 @@ router.get(
             const results = [];
 
             for (const t of templates) {
+                // ✅ si es hoy, oculto lo que ya pasó
+                if (isToday) {
+                    const depHHMM = toHHMM_24(t.depart_time);
+                    if (depHHMM <= nowHHMM) continue;
+                }
+
                 const trip = await getOrCreateTrip(conn, t.id, date);
 
                 // If the trip is CANCELLED for that date, I hide it from reservable options.
@@ -332,6 +396,7 @@ router.get(
         }
     })
 );
+
 
 /**
  * Crear reserva (anti-sobreventa)
@@ -352,22 +417,15 @@ router.post(
             transfer_ref,
         } = req.body;
 
-        // I require contact name for all reservation types.
         customer_name = String(customer_name || "").trim();
-
-        // I normalize phone too (basic trim; pattern is enforced in UI).
         phone = String(phone || "").trim();
-
-        // I normalize package details (only required for PACKAGE).
         package_details = String(package_details || "").trim();
 
-        // I normalize and validate the reservation type.
         type = String(type || "PASSENGER").trim().toUpperCase();
         if (!ALLOWED_TYPES.has(type)) {
             return res.status(400).render("reserve", {error: "Tipo de reserva no válido."});
         }
 
-        // I normalize and validate the payment method.
         payment_method = String(payment_method || "TAQUILLA").trim().toUpperCase();
         if (!ALLOWED_PAYMENT_METHODS.has(payment_method)) {
             return res.status(400).render("reserve", {error: "Método de pago no válido."});
@@ -376,7 +434,6 @@ router.post(
         transfer_ref = String(transfer_ref || "").trim();
         if (!transfer_ref) transfer_ref = null;
 
-        // I map a status that keeps seats reserved correctly.
         const status = payment_method === "TAQUILLA" ? "PAY_AT_BOARDING" : "PENDING_PAYMENT";
 
         let seats = 0;
@@ -384,13 +441,40 @@ router.post(
             const wanted = Number(req.body.seats || 1);
             seats = Math.max(1, Math.min(MAX_CAP, wanted));
         } else {
-            // PACKAGE doesn't consume seats
             seats = 0;
         }
 
         let passengerNames = req.body.passenger_names || [];
         if (typeof passengerNames === "string") passengerNames = [passengerNames];
         passengerNames = passengerNames.map((s) => String(s).trim()).filter(Boolean);
+
+        // ✅ I block reservations for past dates/times (Monterrey time).
+        trip_date = String(trip_date || "").trim();
+        depart_time = String(depart_time || "").trim();
+
+        const today = todayISO_MTY();
+        const nowHHMM = nowHHMM_MTY();
+
+        // I keep comparisons safe by using YYYY-MM-DD and HH:MM (24h).
+        if (!trip_date) {
+            return res.status(400).render("reserve", {error: "Selecciona una fecha válida."});
+        }
+        if (!depart_time) {
+            return res.status(400).render("reserve", {error: "Selecciona un horario disponible."});
+        }
+
+        // If date is in the past, I reject.
+        if (trip_date < today) {
+            return res.status(400).render("reserve", {error: "No puedes reservar en fechas pasadas."});
+        }
+
+        // If date is today, I reject times that already passed (or equal).
+        if (trip_date === today) {
+            const depHHMM = toHHMM_24(depart_time);
+            if (depHHMM <= nowHHMM) {
+                return res.status(400).render("reserve", {error: "Ese horario ya pasó. Elige otra hora."});
+            }
+        }
 
         const conn = await pool.getConnection();
         try {
@@ -414,7 +498,6 @@ router.post(
 
             const trip = await getOrCreateTrip(conn, template.id, trip_date);
 
-            // I lock trip row and verify it is OPEN before reserving.
             const [[tr]] = await conn.query(
                 "SELECT id, status FROM transporte_trips WHERE id=? FOR UPDATE",
                 [trip.id]
@@ -441,7 +524,6 @@ router.post(
                 });
             }
 
-            // ✅ Contact name is always required now.
             if (!customer_name) {
                 await conn.rollback();
                 const pricing2 = await getPricing(conn).catch(() => null);
@@ -452,7 +534,6 @@ router.post(
             }
 
             if (type === "PACKAGE") {
-                // ✅ PACKAGE requires details.
                 if (!package_details) {
                     await conn.rollback();
                     const pricing2 = await getPricing(conn).catch(() => null);
@@ -461,12 +542,8 @@ router.post(
                         pricing: pricing2 || undefined,
                     });
                 }
-
-                // PACKAGE never stores passenger names.
                 passengerNames = [];
             } else {
-                // ✅ PASSENGER: passenger names are optional.
-                // If the user provided any, I require they match the seat count.
                 if (passengerNames.length > 0 && passengerNames.length !== seats) {
                     await conn.rollback();
                     const pricing2 = await getPricing(conn).catch(() => null);
@@ -502,7 +579,6 @@ router.post(
                     reservationId = ins.insertId;
                     break;
                 } catch (e) {
-                    // ER_DUP_ENTRY (por uk_public_token). Reintento.
                     if (String(e?.code) === "ER_DUP_ENTRY") continue;
                     throw e;
                 }
@@ -530,7 +606,6 @@ router.post(
         } catch (e) {
             await conn.rollback();
 
-            // I try to render reserve again with pricing if possible (so UI doesn't break).
             let pricing = null;
             try {
                 const conn2 = await pool.getConnection();
@@ -548,6 +623,7 @@ router.post(
         }
     })
 );
+
 
 /**
  * Checkout (ONLINE payment screen)

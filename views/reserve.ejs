@@ -661,6 +661,21 @@
         return new Date().toLocaleDateString("en-CA", {timeZone: "America/Monterrey"});
     }
 
+    function nowHHMM_MTY() {
+        // I get current time in Monterrey in 24h HH:MM
+        return new Date().toLocaleTimeString("en-GB", {
+            timeZone: "America/Monterrey",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        });
+    }
+
+    function isTodaySelected() {
+        return (tripDate.value || "") === todayISO();
+    }
+
+
     async function loadPricing() {
         // I refresh pricing from /pricing, but I already have a server-side default.
         try {
@@ -886,17 +901,28 @@
     function renderSlotsGrouped(results, seatsNeeded) {
         const requiresCapacity = seatsNeeded > 0;
 
+        const nowHHMM = nowHHMM_MTY();
+        const filterPast = isTodaySelected(); // only hide past times if date is today
+
         const items = (results || [])
             .map(x => ({time: toHHMM(x.time), available: Number(x.available || 0)}))
             .filter(x => requiresCapacity ? (x.available >= seatsNeeded) : true)
+            // ✅ hide past slots (today only)
+            .filter(x => !filterPast || x.time > nowHHMM)
             .sort((a, b) => a.time.localeCompare(b.time));
 
+
         if (!items.length) {
-            clearSlotsUI(requiresCapacity
-                ? "No hay horarios con cupo suficiente para tu selección."
-                : "No hay horarios para esta fecha/ruta.");
+            const msg = (filterPast)
+                ? "Ya no hay horarios disponibles para hoy. Elige otra fecha."
+                : (requiresCapacity
+                    ? "No hay horarios con cupo suficiente para tu selección."
+                    : "No hay horarios para esta fecha/ruta.");
+
+            clearSlotsUI(msg);
             return;
         }
+
 
         const morning = items.filter(x => hourFromTime(x.time) < 12);
         const afternoon = items.filter(x => hourFromTime(x.time) >= 12);
