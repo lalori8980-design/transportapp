@@ -53,11 +53,14 @@ router.post("/telegram/webhook", express.json({limit: "1mb"}), async (req, res) 
     // I ACK fast so Telegram doesn't retry.
     res.status(200).send("OK");
 
+    // Optional: verify secret header (recommended if your URL is public).
     const webhookSecret = (process.env.TG_WEBHOOK_SECRET || "").trim();
     if (webhookSecret) {
         const secret = req.get("x-telegram-bot-api-secret-token") || "";
         if (secret !== webhookSecret) {
-            console.warn("TG webhook secret mismatch:", {got: secret ? "set" : "empty"});
+            if (process.env.NODE_ENV !== "production") {
+                console.warn("TG webhook secret mismatch:", {got: secret ? "set" : "empty"});
+            }
             return;
         }
     }
@@ -69,6 +72,7 @@ router.post("/telegram/webhook", express.json({limit: "1mb"}), async (req, res) 
     const text = String(msg.text).trim();
     if (!text.startsWith("/")) return;
 
+    // I handle "/cmd@YourBot" by stripping the bot suffix.
     const cmd = text.split(/\s+/)[0].split("@")[0];
 
     const chatId = msg.chat?.id;
@@ -76,7 +80,13 @@ router.post("/telegram/webhook", express.json({limit: "1mb"}), async (req, res) 
     const replyTo = msg.message_id;
     if (!chatId) return;
 
-    console.log("TG cmd:", cmd, "chat:", chatId, "thread:", threadId || null);
+    // Optional: only allow commands in one specific chat (recommended).
+    const allowedChatId = String(process.env.TG_CHAT_ID || "").trim();
+    if (allowedChatId && String(chatId) !== allowedChatId) return;
+
+    if (process.env.NODE_ENV !== "production") {
+        console.log("TG cmd:", cmd, "chat:", chatId, "thread:", threadId || null);
+    }
 
     const replyOpts = {
         reply_to_message_id: replyTo,
@@ -85,7 +95,11 @@ router.post("/telegram/webhook", express.json({limit: "1mb"}), async (req, res) 
 
     // Public commands
     if (cmd === "/start") {
-        await tgReply(chatId, "👋 <b>TransportApp Notify</b>\n\nEste bot envía notificaciones internas.\nUsa /help para ver comandos.", replyOpts);
+        await tgReply(
+            chatId,
+            "👋 <b>TransportApp Notify</b>\n\nEste bot envía notificaciones internas.\nUsa /help para ver comandos.",
+            replyOpts
+        );
         return;
     }
 
@@ -103,12 +117,20 @@ router.post("/telegram/webhook", express.json({limit: "1mb"}), async (req, res) 
     }
 
     if (cmd === "/status") {
-        await tgReply(chatId, "✅ <b>Status</b>\nBot activo.\nNotificaciones: habilitadas.", replyOpts);
+        await tgReply(
+            chatId,
+            "✅ <b>Status</b>\nBot activo.\nNotificaciones: habilitadas.",
+            replyOpts
+        );
         return;
     }
 
     if (cmd === "/privacy") {
-        await tgReply(chatId, "🔒 <b>Privacidad</b>\nEste bot solo procesa comandos y envía notificaciones.\nNo lee mensajes normales ni guarda conversaciones.", replyOpts);
+        await tgReply(
+            chatId,
+            "🔒 <b>Privacidad</b>\nEste bot solo procesa comandos y envía notificaciones.\nNo lee mensajes normales ni guarda conversaciones.",
+            replyOpts
+        );
         return;
     }
 
@@ -125,12 +147,26 @@ router.post("/telegram/webhook", express.json({limit: "1mb"}), async (req, res) 
     }
 
     if (cmd === "/chatid") {
-        await tgReply(chatId, `🆔 <b>chat_id</b>: <code>${chatId}</code>`, replyOpts);
+        const kind = String(chatId).startsWith("-100")
+            ? "supergroup"
+            : (String(chatId).startsWith("-") ? "group" : "private");
+
+        await tgReply(
+            chatId,
+            `🆔 <b>chat_id</b>: <code>${chatId}</code>\n` +
+            `🏷️ <b>type</b>: <code>${kind}</code>\n` +
+            `🧵 <b>thread</b>: <code>${threadId ?? "null"}</code>`,
+            replyOpts
+        );
         return;
     }
 
     if (cmd === "/topic") {
-        await tgReply(chatId, `🧵 <b>message_thread_id</b>: <code>${threadId ?? "null"}</code>`, replyOpts);
+        await tgReply(
+            chatId,
+            `🧵 <b>message_thread_id</b>: <code>${threadId ?? "null"}</code>`,
+            replyOpts
+        );
         return;
     }
 
