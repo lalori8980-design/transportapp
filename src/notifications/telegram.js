@@ -87,7 +87,7 @@ async function sendTelegram(textOrOptions) {
     if (!token) return;
 
     const opts = typeof textOrOptions === "string" ? {text: textOrOptions} : (textOrOptions || {});
-    const chatId = String(opts.chat_id || defaultChatId || "").trim();
+    let chatId = String(opts.chat_id || defaultChatId || "").trim();
     if (!chatId) return;
 
     const text = String(opts.text || "").trim();
@@ -137,8 +137,9 @@ async function sendTelegram(textOrOptions) {
             // If Telegram migrated the group to a supergroup, it returns the new chat id.
             const migratedTo = r1.data?.parameters?.migrate_to_chat_id;
             if (r1.status === 400 && migratedTo) {
-                // I retry once with the new chat id.
-                payload.chat_id = String(migratedTo);
+                // I update the active chat id so next chunks use it too.
+                chatId = String(migratedTo);
+                payload.chat_id = chatId;
 
                 const rMig = await tgCall(token, "sendMessage", payload);
                 if (rMig.ok) continue;
@@ -147,7 +148,7 @@ async function sendTelegram(textOrOptions) {
                     status: rMig.status,
                     description: rMig.data?.description,
                     raw: rMig.raw,
-                    migrated_to_chat_id: String(migratedTo),
+                    migrated_to_chat_id: chatId,
                 });
                 return;
             }
@@ -158,6 +159,24 @@ async function sendTelegram(textOrOptions) {
                 await sleep((retryAfter + 1) * 1000);
                 const r2 = await tgCall(token, "sendMessage", payload);
                 if (r2.ok) continue;
+
+                // I also handle migration on the retry path (rare, but possible).
+                const migratedTo2 = r2.data?.parameters?.migrate_to_chat_id;
+                if (r2.status === 400 && migratedTo2) {
+                    chatId = String(migratedTo2);
+                    payload.chat_id = chatId;
+
+                    const r3 = await tgCall(token, "sendMessage", payload);
+                    if (r3.ok) continue;
+
+                    console.error("Telegram sendMessage failed (after retry + migration retry):", {
+                        status: r3.status,
+                        description: r3.data?.description,
+                        raw: r3.raw,
+                        migrated_to_chat_id: chatId,
+                    });
+                    return;
+                }
 
                 console.error("Telegram sendMessage failed (after retry):", {
                     status: r2.status,
@@ -177,7 +196,6 @@ async function sendTelegram(textOrOptions) {
             console.error("Telegram notify failed:", e?.name === "AbortError" ? "timeout" : (e?.message || e));
             return;
         }
-
     }
 }
 
