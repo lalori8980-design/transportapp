@@ -1,4 +1,6 @@
 // server.js
+"use strict";
+
 const path = require("path");
 const fs = require("fs");
 
@@ -29,11 +31,18 @@ const express = require("express");
 const session = require("express-session");
 
 const { pool, hasDb } = require("./src/db");
+
+// Routers
+const telegramWebhookRouter = require("./src/routes/telegramWebhook");
+const ticketRoutes = require("./src/routes/ticket");
 const publicRoutes = require("./src/routes/public");
 const adminRoutes = require("./src/routes/admin");
-const ticketRoutes = require("./src/routes/ticket");
 
 const app = express();
+
+/* =========================
+   App settings
+   ========================= */
 
 // I trust the proxy so req.protocol is correct behind hosting/proxy (Hostinger)
 app.set("trust proxy", 1);
@@ -41,6 +50,10 @@ app.set("trust proxy", 1);
 // Views
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
+
+/* =========================
+   Core middleware
+   ========================= */
 
 // Static files
 app.use(express.static(path.join(__dirname, "public")));
@@ -58,8 +71,6 @@ app.use(
         },
     })
 );
-
-
 
 // Sessions (before routes that might need req.session)
 app.use(
@@ -85,14 +96,27 @@ app.use((req, res, next) => {
     next();
 });
 
-// Routes
+/* =========================
+   Webhooks (early & isolated)
+   ========================= */
+
+// Telegram webhook
+app.use(telegramWebhookRouter);
+
+/* =========================
+   Routes
+   ========================= */
+
 // I keep ticket routes early so /ticket/... doesn't get shadowed by other routers.
 app.use(ticketRoutes);
 
 app.use("/", publicRoutes);
 app.use("/admin", adminRoutes);
 
-// Health check
+/* =========================
+   Health check
+   ========================= */
+
 app.get("/health", async (req, res) => {
     const now = new Date();
     const uptimeSec = Math.round(process.uptime());
@@ -165,7 +189,10 @@ app.get("/health", async (req, res) => {
     }
 });
 
-// Start
+/* =========================
+   Start
+   ========================= */
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);

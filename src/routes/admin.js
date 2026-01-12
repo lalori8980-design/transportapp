@@ -1042,5 +1042,29 @@ router.post("/reservation/:id/refund-done", requireAdmin, requireDb, async (req,
     }
 });
 
+router.get("/tg-webhook", async (req, res) => {
+    // I protect this route with my own admin auth (session / basic / whatever you use).
+    const token = (process.env.TG_BOT_TOKEN || "").trim();
+    const baseUrl = (process.env.BASE_URL || "").replace(/\/+$/, "");
+    const secret = (process.env.TG_WEBHOOK_SECRET || "").trim();
+
+    if (!token || !baseUrl) return res.status(400).send("Missing TG_BOT_TOKEN or BASE_URL");
+
+    const url = `https://api.telegram.org/bot${token}/setWebhook`;
+    const payload = {
+        url: `${baseUrl}/telegram/webhook`,
+        ...(secret ? {secret_token: secret} : {}),
+    };
+
+    const r = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+    });
+
+    const data = await r.json().catch(() => ({}));
+    res.json({ok: r.ok, data, payload});
+});
+
 
 module.exports = router;
