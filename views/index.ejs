@@ -232,9 +232,12 @@
             border-radius: 18px;
             padding: 14px;
             margin-bottom: 12px;
-            background: radial-gradient(900px 420px at 10% 0%, rgba(106, 15, 31, .10), transparent 55%),
-            color-mix(in srgb, var(--card) 92%, transparent);
+
+            background-color: color-mix(in srgb, var(--card) 92%, transparent);
+            background-image: radial-gradient(900px 420px at 10% 0%, rgba(106, 15, 31, .10), transparent 55%);
+            background-repeat: no-repeat;
         }
+
 
         .next-title{
             margin: 0 0 10px 0;
@@ -496,7 +499,9 @@
     /* ===== Admin login oculto: mantener presionado el LOGO ===== */
     (function () {
         const hotspot = document.getElementById("adminHotspot");
-        const HOLD_MS = 1500; // puedes subir a 3000 si quieres
+        if (!hotspot) return;
+
+        const HOLD_MS = 1500;
 
         let holdTimer = null;
         let usingTouch = false;
@@ -507,11 +512,12 @@
         }
 
         function start(e) {
-            if (e.cancelable) e.preventDefault();
+            const isTouch = (e.type && e.type.startsWith("touch")) || e.pointerType === "touch";
+            if (isTouch && e.cancelable) e.preventDefault();
+
             if (holdTimer) return;
 
             if (e.type && e.type.startsWith("touch")) usingTouch = true;
-
             holdTimer = setTimeout(go, HOLD_MS);
         }
 
@@ -521,13 +527,11 @@
             holdTimer = null;
         }
 
-        // iOS / Safari / WebViews
         hotspot.addEventListener("touchstart", start, { passive: false });
         hotspot.addEventListener("touchend", cancel);
         hotspot.addEventListener("touchcancel", cancel);
         hotspot.addEventListener("touchmove", cancel);
 
-        // Mouse / Android moderno
         hotspot.addEventListener("pointerdown", (e) => {
             if (usingTouch) return;
             start(e);
@@ -544,7 +548,7 @@
         });
     })();
 
-    /* ===== Próximas salidas (Propuesta #2) ===== */
+    /* ===== Próximas salidas (muestra la próxima REAL aunque esté llena + mensaje si está lleno) ===== */
     (function () {
         const card = document.getElementById("nextCard");
 
@@ -558,74 +562,158 @@
         const elL2VWhen = document.getElementById("nextL2VWhen");
         const elL2VLink = document.getElementById("nextL2VLink");
 
-        function parseHHMM(hhmm) {
-            const m = /^(\d{2}):(\d{2})$/.exec(String(hhmm || "").trim());
-            if (!m) return null;
-            const h = Number(m[1]);
-            const min = Number(m[2]);
-            if (Number.isNaN(h) || Number.isNaN(min)) return null;
-            return h * 60 + min;
+        if (!card || !elV2L || !elL2V) return;
+
+        function todayISO_MTY() {
+            return new Date().toLocaleDateString("en-CA", {timeZone: "America/Monterrey"});
         }
 
-        function computeNext(times) {
-            const now = new Date();
-            const nowMin = now.getHours() * 60 + now.getMinutes();
+        function addDaysISO(baseISO, days) {
+            const [y, m, d] = String(baseISO).split("-").map(Number);
+            const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+            dt.setUTCDate(dt.getUTCDate() + Number(days || 0));
 
-            const mins = times
-                .map(parseHHMM)
-                .filter(v => typeof v === "number")
-                .sort((a,b) => a - b);
-
-            if (mins.length === 0) return null;
-
-            const idx = mins.findIndex(v => v >= nowMin);
-            const nextMin = idx >= 0 ? mins[idx] : mins[0];
-            const when = idx >= 0 ? "Hoy" : "Mañana";
-
-            const hh = String(Math.floor(nextMin / 60)).padStart(2, "0");
-            const mm = String(nextMin % 60).padStart(2, "0");
-            const hhmm = `${hh}:${mm}`;
-
-            return { hhmm, when };
+            const yy = dt.getUTCFullYear();
+            const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+            const dd = String(dt.getUTCDate()).padStart(2, "0");
+            return `${yy}-${mm}-${dd}`;
         }
 
-        function collectTimes(dir) {
-            return Array.from(document.querySelectorAll(`.chip-time[data-dir="${dir}"]`))
-                .map(a => a.getAttribute("data-time"))
-                .filter(Boolean);
+        function toHHMM(t) {
+            const s = String(t || "").trim();
+            if (/^\d{2}:\d{2}$/.test(s)) return s;
+            if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s.slice(0, 5);
+            const parts = s.split(":");
+            if (parts.length >= 2) {
+                return `${String(parts[0]).padStart(2, "0")}:${String(parts[1]).slice(0, 2).padStart(2, "0")}`;
+            }
+            return s;
         }
 
-        const v2lTimes = collectTimes("VIC_TO_LLE");
-        const l2vTimes = collectTimes("LLE_TO_VIC");
+        async function fetchAvailability(dateISO, dir, seats) {
+            // I use seats=0 to get "next departure" even if it's full.
+            const url =
+                `/availability?date=${encodeURIComponent(dateISO)}` +
+                `&direction=${encodeURIComponent(dir)}` +
+                `&seats=${encodeURIComponent(seats)}`;
 
-        const nextV2L = computeNext(v2lTimes);
-        const nextL2V = computeNext(l2vTimes);
-
-        let any = false;
-
-        if (nextV2L) {
-            any = true;
-            elV2L.style.display = "";
-            elV2LTime.textContent = nextV2L.hhmm;
-            elV2LWhen.textContent = `Salida ${nextV2L.when}`;
-            elV2LLink.href = `/reserve?dir=VIC_TO_LLE&time=${encodeURIComponent(nextV2L.hhmm)}`;
+            const res = await fetch(url, {headers: {Accept: "application/json"}});
+            const data = await res.json();
+            return Array.isArray(data?.results) ? data.results : [];
         }
 
-        if (nextL2V) {
-            any = true;
-            elL2V.style.display = "";
-            elL2VTime.textContent = nextL2V.hhmm;
-            elL2VWhen.textContent = `Salida ${nextL2V.when}`;
-            elL2VLink.href = `/reserve?dir=LLE_TO_VIC&time=${encodeURIComponent(nextL2V.hhmm)}`;
+        async function findNext(dir, seats) {
+            const base = todayISO_MTY();
+
+            // I scan today -> next 7 days until I find at least one matching slot.
+            for (let offset = 0; offset <= 7; offset++) {
+                const dateISO = addDaysISO(base, offset);
+
+                let results = [];
+                try {
+                    results = await fetchAvailability(dateISO, dir, seats);
+                } catch {
+                    results = [];
+                }
+
+                const sorted = results
+                    .map(r => ({
+                        hhmm: toHHMM(r.time ?? r.depart_time ?? ""),
+                        available: Number(r.available ?? 0),
+                        rawTime: (r.time ?? r.depart_time ?? ""),
+                    }))
+                    .filter(x => x.hhmm)
+                    .sort((a, b) => a.hhmm.localeCompare(b.hhmm));
+
+                if (sorted.length) {
+                    const when = offset === 0 ? "hoy" : offset === 1 ? "mañana" : dateISO;
+                    return {
+                        dateISO,
+                        when,
+                        hhmm: sorted[0].hhmm,
+                        available: sorted[0].available,
+                        rawTime: sorted[0].rawTime
+                    };
+                }
+            }
+
+            return null;
         }
 
-        if (any) card.style.display = "";
+        function buildReserveUrl(dir, dateISO, hhmm) {
+            if (!dateISO || !hhmm) return "/reserve";
+            return (
+                `/reserve?dir=${encodeURIComponent(dir)}` +
+                `&time=${encodeURIComponent(hhmm)}` +
+                `&date=${encodeURIComponent(dateISO)}`
+            );
+        }
+
+        function renderNext({elWrap, elTime, elWhen, elLink}, dir, nextReal, nextOk) {
+            if (!nextReal) return false;
+
+            elWrap.style.display = "";
+            elTime.textContent = nextReal.hhmm;
+
+            const isFull = Number(nextReal.available || 0) <= 0;
+
+            if (isFull) {
+                elWhen.textContent =
+                    `Salida ${nextReal.when} · Lleno` +
+                    (nextOk ? ` · Siguiente con cupo: ${nextOk.hhmm} (${nextOk.when})` : "");
+
+                // I keep the button as "Reservar" but send it to the next reservable slot if I have one.
+                elLink.textContent = "Reservar";
+                elLink.href = nextOk
+                    ? buildReserveUrl(dir, nextOk.dateISO, nextOk.hhmm)
+                    : "/reserve";
+            } else {
+                elWhen.textContent = `Salida ${nextReal.when}`;
+                elLink.textContent = "Reservar";
+                elLink.href = buildReserveUrl(dir, nextReal.dateISO, nextReal.hhmm);
+            }
+
+            return true;
+        }
+
+        Promise.all([
+            // I get the next REAL departure (even if full).
+            findNext("VIC_TO_LLE", 0),
+            findNext("LLE_TO_VIC", 0),
+
+            // I also get the next reservable departure (needs at least 1 seat).
+            findNext("VIC_TO_LLE", 1),
+            findNext("LLE_TO_VIC", 1),
+        ]).then(([v2lReal, l2vReal, v2lOk, l2vOk]) => {
+            let any = false;
+
+            any =
+                renderNext(
+                    {elWrap: elV2L, elTime: elV2LTime, elWhen: elV2LWhen, elLink: elV2LLink},
+                    "VIC_TO_LLE",
+                    v2lReal,
+                    v2lOk
+                ) || any;
+
+            any =
+                renderNext(
+                    {elWrap: elL2V, elTime: elL2VTime, elWhen: elL2VWhen, elLink: elL2VLink},
+                    "LLE_TO_VIC",
+                    l2vReal,
+                    l2vOk
+                ) || any;
+
+            if (any) card.style.display = "";
+        });
     })();
 
+    /* ===== Copiar teléfono ===== */
     (function () {
         const btn = document.getElementById("copyPhoneBtn");
         const phone = "8344756376";
-        btn?.addEventListener("click", async () => {
+        if (!btn) return;
+
+        btn.addEventListener("click", async () => {
             try {
                 await navigator.clipboard.writeText(phone);
                 const old = btn.textContent;
@@ -637,6 +725,7 @@
         });
     })();
 </script>
+
 
 </body>
 </html>

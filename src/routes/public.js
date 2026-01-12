@@ -1,3 +1,5 @@
+// src/routes/public.js
+
 "use strict";
 
 /* =========================
@@ -428,10 +430,10 @@ router.get(
             return res.status(400).json({ok: false, message: "Faltan parámetros: date, direction"});
         }
 
-        // ✅ up to 6 (and allow 0 for PACKAGE)
+        // I allow 0 for PACKAGE and clamp up to MAX_CAP.
         const seatsWanted = Math.max(0, Math.min(MAX_CAP, Number(req.query.seats || 1)));
 
-        // ✅ filtro de pasado (Monterrey)
+        // I filter past dates/times using Monterrey time.
         const today = todayISO_MTY();
         const nowHHMM = nowHHMM_MTY();
 
@@ -443,41 +445,74 @@ router.get(
 
         const conn = await pool.getConnection();
         try {
-            const [templates] = await conn.query(
+            // I DO NOT create trips here. I only read existing ones (if any),
+            // and compute availability safely. If a trip doesn't exist, it's treated as OPEN with full capacity.
+            const [rows] = await conn.query(
                 `
-                    SELECT id, direction, depart_time, capacity_passengers
-                    FROM transporte_departure_templates
-                    WHERE active = 1
-                      AND direction = ?
-                    ORDER BY depart_time
+                    SELECT dt.id                      AS template_id,
+                           dt.depart_time,
+                           dt.capacity_passengers,
+                           t.id                       AS trip_id,
+                           COALESCE(t.status, 'OPEN') AS trip_status,
+                           GREATEST(
+                                   LEAST(dt.capacity_passengers, ?) - COALESCE(
+                                           SUM(
+                                                   CASE
+                                                       WHEN r.type = 'PASSENGER'
+                                                           AND
+                                                            r.status IN ('PENDING_PAYMENT', 'PAY_AT_BOARDING', 'PAID')
+                                                           THEN COALESCE(rp.passenger_count, NULLIF(r.seats, 0), 1)
+                                                       ELSE 0
+                                                       END
+                                           ),
+                                           0
+                                                                      ),
+                                   0
+                           )                          AS available
+                    FROM transporte_departure_templates dt
+                             LEFT JOIN transporte_trips t
+                                       ON t.template_id = dt.id
+                                           AND t.trip_date = ?
+                             LEFT JOIN transporte_reservations r
+                                       ON r.trip_id = t.id
+                             LEFT JOIN (SELECT reservation_id, COUNT(*) AS passenger_count
+                                        FROM transporte_reservation_passengers
+                                        GROUP BY reservation_id) rp ON rp.reservation_id = r.id
+                    WHERE dt.active = 1
+                      AND dt.direction = ?
+                    GROUP BY dt.id, dt.depart_time, dt.capacity_passengers, t.id, t.status
+                    ORDER BY dt.depart_time
                 `,
-                [direction]
+                [MAX_CAP, String(date), String(direction)]
             );
 
             const results = [];
 
-            for (const t of templates) {
-                // ✅ si es hoy, oculto lo que ya pasó
-                if (isToday) {
-                    const depHHMM = toHHMM_24(t.depart_time);
-                    if (depHHMM <= nowHHMM) continue;
-                }
+            for (const row of rows) {
+                const depHHMM = toHHMM_24(row.depart_time);
 
-                const trip = await getOrCreateTrip(conn, t.id, date);
+                // I hide past times only if date is today.
+                if (isToday && depHHMM <= nowHHMM) continue;
 
-                // If the trip is CANCELLED for that date, I hide it from reservable options.
-                if (String(trip.status || "OPEN").toUpperCase() !== "OPEN") continue;
+                // I respect disabled trips for that date (only if a trip exists and its status is not OPEN).
+                const st = String(row.trip_status || "OPEN").toUpperCase();
+                if (st !== "OPEN") continue;
 
-                const available = await computeAvailable(conn, trip.id);
-                results.push({time: t.depart_time, available});
+                const available = Number(row.available ?? 0);
+
+                // I optionally filter by seatsWanted if needed (PASSENGER flow).
+                if (seatsWanted > 0 && available < seatsWanted) continue;
+
+                results.push({time: row.depart_time, available});
             }
 
-            res.json({date, direction, seatsWanted, results});
+            return res.json({date, direction, seatsWanted, results});
         } finally {
             conn.release();
         }
     })
 );
+
 
 /* =========================
    Route: Create reservation (anti-sobreventa)
@@ -721,12 +756,11 @@ router.post(
                     "🆕 <b>Nueva reserva</b>",
                     `Folio: <code>${escapeHtml(folio)}</code>`,
                     `Tipo: ${escapeHtml(typeText)}${
-                        type === "PASSENGER"
-                            ? ` (${seats} pasajero${seats === 1 ? "" : "s"})`
-                            : ""
+                        type === "PASSENGER" ? ` (${seats} pasajero${seats === 1 ? "" : "s"})` : ""
                     }`,
                     `Ruta: ${escapeHtml(routeText)}`,
-                    `Fecha: ${escapeHtml(trip_date)} ${escapeHtml(depart_time)}`,
+                    `Fecha: ${escapeHtml(trip_date)}`,
+                    `Hora: ${escapeHtml(depart_time)}`,
                     `Contacto: ${escapeHtml(customer_name || "-")}`,
                     `Tel: ${telText}`, // ✅ WhatsApp link
                     `Pago: ${escapeHtml(payText)}`,
@@ -746,6 +780,7 @@ router.post(
                     disable_web_page_preview: true,
                     ...(canUseButton ? {buttons: [{text: "🔎 Abrir reserva", url: viewUrl}]} : {}),
                 });
+
             } catch {
             }
 
