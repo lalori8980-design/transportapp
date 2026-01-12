@@ -1,4 +1,14 @@
 // src/notifications/telegram.js
+"use strict";
+
+function envClean(key) {
+    // I normalize env values in case the host stores them with quotes.
+    let v = String(process.env[key] || "").trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1).trim();
+    }
+    return v;
+}
 
 function escapeHtml(s) {
     return String(s ?? "")
@@ -81,8 +91,8 @@ async function tgCall(token, method, payload, timeoutMs = 7000) {
  *    })
  */
 async function sendTelegram(textOrOptions) {
-    const token = (process.env.TG_BOT_TOKEN || "").trim();
-    const defaultChatId = (process.env.TG_CHAT_ID || "").trim();
+    const token = envClean("TG_BOT_TOKEN");
+    const defaultChatId = envClean("TG_CHAT_ID");
 
     if (!token) return;
 
@@ -108,8 +118,8 @@ async function sendTelegram(textOrOptions) {
             disable_notification: opts.disable_notification ?? false,
         };
 
-        // Optional: topics support
-        if (opts.message_thread_id) payload.message_thread_id = opts.message_thread_id;
+        // Optional: topics support (Telegram expects a number).
+        if (opts.message_thread_id) payload.message_thread_id = Number(opts.message_thread_id);
 
         // Optional: reply support (only on first chunk)
         if (idx === 0 && opts.reply_to_message_id) payload.reply_to_message_id = opts.reply_to_message_id;
@@ -117,15 +127,14 @@ async function sendTelegram(textOrOptions) {
         // Optional: inline buttons (only on last chunk so they show at the end)
         if (idx === chunks.length - 1 && Array.isArray(opts.buttons) && opts.buttons.length) {
             payload.reply_markup = {
-                inline_keyboard: [
-                    opts.buttons
-                        .filter((b) => b && b.text && (b.url || b.callback_data))
-                        .map((b) => ({
-                            text: String(b.text),
-                            ...(b.url ? {url: String(b.url)} : {}),
-                            ...(b.callback_data ? {callback_data: String(b.callback_data)} : {}),
-                        })),
-                ],
+                // I place one button per row for cleaner UI.
+                inline_keyboard: opts.buttons
+                    .filter((b) => b && b.text && (b.url || b.callback_data))
+                    .map((b) => ([{
+                        text: String(b.text),
+                        ...(b.url ? {url: String(b.url)} : {}),
+                        ...(b.callback_data ? {callback_data: String(b.callback_data)} : {}),
+                    }])),
             };
         }
 
