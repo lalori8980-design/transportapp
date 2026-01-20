@@ -39,7 +39,6 @@ const ticketRoutes = require("./src/routes/ticket");
 const publicRoutes = require("./src/routes/public");
 const adminRoutes = require("./src/routes/admin");
 
-
 const app = express();
 
 /* =========================
@@ -102,7 +101,6 @@ app.use((req, res, next) => {
     res.locals.GTM_CONTAINER_ID = process.env.GTM_CONTAINER_ID || "";
     next();
 });
-
 
 /* =========================
    Webhooks (early & isolated)
@@ -199,6 +197,31 @@ app.get("/health", async (req, res) => {
         return res.status(500).json(base);
     }
 });
+
+/* =========================
+   Catch-all (404)
+   ========================= */
+
+app.use((req, res) => {
+    const ext = path.extname(req.path || "");
+    const wantsHtml = req.accepts("html"); // true/false
+
+    // assets (.css, .js, .png, etc.)
+    if (ext) return res.status(404).send("Not found");
+
+    // browser-like HTML requests
+    if (req.method === "GET" && wantsHtml) {
+        return res.status(404).render("404", {
+            title: "Página no encontrada",
+            path: req.originalUrl,
+            noindex: true
+        });
+    }
+
+    // API/bots
+    return res.status(404).json({error: "Not found"});
+});
+
 
 /* =========================
    Start
