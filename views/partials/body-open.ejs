@@ -1,0 +1,19 @@
+<%
+// I keep GTM noscript right after <body> as recommended by Google.
+// I read it from locals so it works even if my view includes override locals.
+const GTM_ID =
+        (typeof GTM_CONTAINER_ID !== "undefined" && GTM_CONTAINER_ID)
+                ? String(GTM_CONTAINER_ID)
+                : ((typeof locals !== "undefined" && locals && locals.GTM_CONTAINER_ID)
+                        ? String(locals.GTM_CONTAINER_ID)
+                        : "");
+%>
+
+<% if (GTM_ID && GTM_ID.startsWith("GTM-")) { %>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+        <iframe src="https://www.googletagmanager.com/ns.html?id=<%= GTM_ID %>"
+                height="0" width="0" style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+<% } %>

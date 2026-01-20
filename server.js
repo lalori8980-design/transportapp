@@ -98,6 +98,12 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use((req, res, next) => {
+    res.locals.GTM_CONTAINER_ID = process.env.GTM_CONTAINER_ID || "";
+    next();
+});
+
+
 /* =========================
    Webhooks (early & isolated)
    ========================= */
